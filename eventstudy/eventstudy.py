@@ -218,9 +218,9 @@ class Calculator(object):
         cars_cum = np.mean(na_cum_rets,axis=0)
 
         if (cars_cum[-1] -1 ) > 0 :
-            cavcs_positive = True
+            cars_positive = True
         else:
-            cavcs_positive = False
+            cars_positive = False
 
         cars_num_stocks_positive = results['pos'].sum()
         
@@ -379,7 +379,7 @@ class Calculator(object):
 
             # plot if you need
 
-            plot_regressvals(x1, y1, slope1, intercept1, cars, stock)
+            #plot_regressvals(x1, y1, slope1, intercept1, cars, stock)
 
             # the same for cvals
 
@@ -393,7 +393,7 @@ class Calculator(object):
             slope2, intercept2, cavs0 = regress_vals(x2, y2)
             cavs = np.cumsum(cavs0)
 
-            plot_regressvals(x2, y2, slope2, intercept2, cavs, stock)
+            #plot_regressvals(x2, y2, slope2, intercept2, cavs, stock)
 
             # store the regresion values
 
@@ -468,7 +468,7 @@ class Calculator(object):
                     mkt_vols = vlm_changes.loc[market_symbol,window].loc[market_symbol,slice(None)]
                     
                     event_ex_vols = event_vols.subtract(slope2 * mkt_vols + intercept2, fill_value=0.0)
-                    event_ex_vols = event_vols.subtract(dummy_rets, fill_value=0.0)
+                    event_ex_vols = event_ex_vols.subtract(dummy_rets, fill_value=0.0)
 
                     event_cum_ex_vols = np.cumsum(event_ex_vols)
                     # plot_regressvals(mkt_vols,event_ex_vols,slope2, intercept2,event_cum_ex_vols,stock)
@@ -645,7 +645,7 @@ def plot_regressvals(x, y, slope, intercept, cars, stock):
 
     ax2 = plt.subplot(212)
     ax2.plot(cars, label='excess return')
-    # plt.show()
+    plt.show()
 
 
 def regress_vals(x, y):
@@ -729,7 +729,7 @@ class Plotter(object):
         ax2.plot(li_time, cavcs, linewidth=1, label='mean', color='b')
         plt.xlim(-look_back - 1, look_forward + 1)
         plt.xlabel('Days')
-        plt.ylabel('Cumulative Abnormal Changes in Volumes')
+        plt.ylabel('Cumulative Abnormal Volumes Changes')
 
         # write it our
         if pdf_filename is not None:

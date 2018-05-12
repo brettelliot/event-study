@@ -61,8 +61,10 @@ def main():
     logger.info(ccr.results_as_string())
 
     plotter = Plotter()
-    plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
-                           pre_event_window, post_event_window, False, 'single_factor_ib.pdf')
+    #plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
+    #                       pre_event_window, post_event_window, False, 'single_factor_ib.pdf')
+    plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events, pre_event_window, post_event_window,
+                     False, "single_factor_ib.pdf")
 
 
 if __name__ == "__main__":
