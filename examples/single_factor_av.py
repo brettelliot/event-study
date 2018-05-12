@@ -8,15 +8,15 @@ from examples.example_event_matrix import ExampleEventMatrix
 def main():
 
     # Logging
-    logging.basicConfig(filename='single_factor_av.log', filemode='w', level=logging.DEBUG, format='%(message)s')
+    logging.basicConfig(
+        level=logging.INFO,
+        #level=logging.DEBUG,
+        format='%(message)s',
+        handlers=[
+            logging.FileHandler('single_factor_av.log', mode='w'),
+            logging.StreamHandler()
+        ])
     logger = logging.getLogger()
-
-    file_log_handler = logging.FileHandler('single_factor_av.log')
-    logger.addHandler(file_log_handler)
-
-    stderr_log_handler = logging.StreamHandler()
-    logger.addHandler(stderr_log_handler)
-    logger.setLevel('DEBUG')
 
     # Define the symbols to study
     symbols = ['RGR', 'OLN']
@@ -38,18 +38,18 @@ def main():
     csv_file_name = '../data/events/event_dates.csv'
 
     # Get a pandas multi-indexed dataframe indexed by date and symbol
-    logger.info("Collecting historical stock data")
+    logger.debug("Collecting historical stock data")
     keys = ['adjusted_close', 'volume']
     stock_data_cache = AVDataCache('../data/av/')
     stock_data = stock_data_cache.get_stock_data(symbols, keys)
 
-    logger.info("Building event matrix")
+    logger.debug("Building event matrix")
     eem = ExampleEventMatrix(stock_data.index.levels[1], symbols,
                              value_threshold, csv_file_name)
 
     # Get a dataframe with an index of all trading days, and columns of all symbols.
     event_matrix = eem.build_event_matrix(start_date, end_date)
-    logger.info(event_matrix[(event_matrix == 1.0).any(axis=1)])
+    logger.debug(event_matrix[(event_matrix == 1.0).any(axis=1)])
     logger.info("Number of events:" + str(len(event_matrix[(event_matrix == 1.0).any(axis=1)])))
 
     calculator = Calculator()
@@ -57,23 +57,7 @@ def main():
                                                              market_symbol, estimation_window, buffer,
                                                              pre_event_window, post_event_window)
 
-    # print results to file and Plots
-    logger.info('CARS and CAVCS results for the whole group of stocks')
-    logger.info('  Number of events  =  ' + str(ccr.num_events))
-    logger.info('CARS Results')
-    logger.info('  Number of stocks with +CARS = ' + str(ccr.cars_num_stocks_positive))
-    logger.info('  Number of stocks with -CARS = ' + str(ccr.cars_num_stocks_negative))
-    logger.info('  CARS t-test value = ' + str(ccr.cars_t_test))
-    logger.info('  CARS significant = ' + str(ccr.cars_significant))
-    logger.info('  CARS positive = ' + str(ccr.cars_positive))
-    logger.info('CAVCS Results')
-    logger.info('  Number of stocks with +CAVCS = ' + str(ccr.cavcs_num_stocks_positive))
-    logger.info('  Number of stocks with -CAVCS = ' + str(ccr.cavcs_num_stocks_negative))
-    logger.info('  CAVCS full t-test value = ' + str(ccr.cavcs_t_test))
-    logger.info('  CAVCS significant = ' + str(ccr.cavcs_significant))
-    logger.info('  CAVCS positive = ' + str(ccr.cavcs_positive))
-
-    logger.info("CAR: {}".format(ccr.cars))
+    logger.info(ccr.results_as_string())
 
     plotter = Plotter()
     plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,

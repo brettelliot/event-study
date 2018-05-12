@@ -41,6 +41,7 @@ class EventMatrix(object):
 
 
 class CarsCavcsResult(object):
+
     def __init__(self, num_events,
                  cars, cars_std_err, cars_t_test, cars_significant, cars_positive, cars_num_stocks_positive,
                  cars_num_stocks_negative,
@@ -81,6 +82,23 @@ class CarsCavcsResult(object):
         self.cavcs_num_stocks_positive = cavcs_num_stocks_positive
         self.cavcs_num_stocks_negative = cavcs_num_stocks_negative
 
+    def results_as_string(self):
+
+        result_string = 'CARS Results' + '\n'
+        result_string += '  Number of stocks with +CARS = ' + str(self.cars_num_stocks_positive) + '\n'
+        result_string += '  Number of stocks with -CARS = ' + str(self.cars_num_stocks_negative) + '\n'
+        result_string += '  CARS t-test value = ' + str(self.cars_t_test) + '\n'
+        result_string += '  CARS significant = ' + str(self.cars_significant) + '\n'
+        result_string += '  CARS positive = ' + str(self.cars_positive) + '\n'
+        result_string += 'CAVCS Results' + '\n'
+        result_string += '  Number of stocks with +CAVCS = ' + str(self.cavcs_num_stocks_positive) + '\n'
+        result_string += '  Number of stocks with -CAVCS = ' + str(self.cavcs_num_stocks_negative) + '\n'
+        result_string += '  CAVCS full t-test value = ' + str(self.cavcs_t_test) + '\n'
+        result_string += '  CAVCS significant = ' + str(self.cavcs_significant) + '\n'
+        result_string += '  CAVCS positive = ' + str(self.cavcs_positive) + '\n'
+
+        return result_string
+
 
 class Calculator(object):
     def __init__(self):
@@ -102,9 +120,13 @@ class Calculator(object):
         https://github.com/brettelliot/QuantSoftwareToolkit/blob/master/QSTK/qstkstudy/EventProfiler.py
         '''
 
-
         # Copy the stock prices into a new dataframe which will become filled with the returns
         daily_returns = stock_data.copy()
+        
+        #stock_data['RGR'][stock_data['RGR'].index == '2011-12-30']
+        
+        #daily_returns['RGR'][daily_returns['RGR'].index == '2011-12-30']
+
 
         # Convert prices into daily returns.
         # This is the amount that the specific stock increased or decreased in value for one day.
@@ -113,7 +135,16 @@ class Calculator(object):
         # Subtract the market returns from all of the stock's returns. The result is the abnormal return.
         # beta = get_beta()
         beta = 1.0  # deal with beta later
-        abnormal_returns = daily_returns.subtract(beta * daily_returns[market_symbol], axis='index')
+        
+        symbols =  daily_returns.index.get_level_values(0).unique()
+
+        abnormal_returns = daily_returns.copy()
+        
+        daily_returns.index.value_counts()
+        #abnr = daily_returns.subtract(beta * daily_returns[market_symbol],level=1)
+        
+        for sym in symbols:
+            abnormal_returns.loc[sym,slice(None)] -=  beta * daily_returns.loc[market_symbol,slice(None)].values
 
         # remove the market symbol from the returns and event matrix. It's no longer needed.
         del daily_returns[market_symbol]
@@ -130,33 +161,102 @@ class Calculator(object):
         # Number of events
         i_no_events = int(np.logical_not(np.isnan(event_matrix.values)).sum())
         assert i_no_events > 0, "Zero events in the event matrix"
-        na_event_rets = "False"
+        
+        na_all_rets   = "False"
 
+        results = pd.DataFrame(index = symbols,columns =['pos','neg'])
+        
         # Looking for the events and pushing them to a matrix
-        for i, s_sym in enumerate(event_matrix.columns):
-            for j, dt_date in enumerate(event_matrix.index):
-                if event_matrix[s_sym][dt_date] == 1:
-                    na_ret = abnormal_returns[s_sym][j - look_back:j + 1 + look_forward]
-                    if type(na_event_rets) == type(""):
-                        na_event_rets = na_ret
-                    else:
-                        na_event_rets = np.vstack((na_event_rets, na_ret))
+        try:
+            for i, s_sym in enumerate(event_matrix.columns):
+                na_stock_rets = "False"
+                for j, dt_date in enumerate(event_matrix.index):
+                    if event_matrix[s_sym][dt_date] == 1:
+                        na_ret = abnormal_returns[s_sym][j - look_back:j + 1 + look_forward]
+                        if type(na_stock_rets) == type(""):
+                            na_stock_rets = na_ret
+                        else:
+                            na_stock_rets = np.vstack((na_stock_rets, na_ret))
+            
+                #reurns for a particular stock analyze here
+                # then append to all rets
 
-        if len(na_event_rets.shape) == 1:
-            na_event_rets = np.expand_dims(na_event_rets, axis=0)
+                if(np.mean(na_stock_rets)  > 0):
+                    results.loc[s_sym,'pos'] = True
+                else:
+                    results.loc[s_sym,'neg'] = True
+                
+                if type(na_all_rets) == type(""):
+                    na_all_rets = na_stock_rets
+                else:
+                    na_all_rets = np.vstack((na_all_rets, na_stock_rets))
+                            
+        except Exception as e:
+            print(e)
+
+        if len(na_all_rets.shape) == 1:
+            na_all_rets = np.expand_dims(na_all_rets, axis=0)
 
         # Computing daily rets and retuns
-        na_event_rets = np.cumprod(na_event_rets + 1, axis=1)
-        na_event_rets = (na_event_rets.T / na_event_rets[:, look_back]).T
+        #
 
         # Study Params
-        na_mean = np.mean(na_event_rets, axis=0)
+        
         # print(na_mean)
         # print(na_mean.shape)
-        na_std = np.std(na_event_rets, axis=0)
+        
+        num_events = len(na_all_rets)
+        
+        cars = np.mean(na_all_rets, axis=0)
 
-        return na_mean, na_std, i_no_events
+        cars_std_err = np.std(na_all_rets,axis=0)
+        
+        
+        na_cum_rets = np.cumprod(na_all_rets + 1, axis=1)
+        na_cum_rets = (na_cum_rets.T / na_cum_rets[:, look_back]).T
+        
+        cars_cum = np.mean(na_cum_rets,axis=0)
 
+        if (cars_cum[-1] -1 ) > 0 :
+            cavcs_positive = True
+        else:
+            cavcs_positive = False
+
+        cars_num_stocks_positive = results['pos'].sum()
+        
+        cars_num_stocks_negative = results['neg'].sum()
+
+
+        std1 = np.std(cars)
+        
+        cars_t_test = np.mean(cars) /std1 * np.sqrt(len(cars))
+                                                    
+
+        from scipy import stats
+        
+        pval1 = 1 - stats.t.cdf(cars_t_test,df=len(cars))
+        
+        if(pval1 < .05):
+            cars_significant = True
+        else:
+            cars_significant = False
+                                                    
+                                                    
+        if (cars_t_test > 0):
+            cars_positive = True
+        else:
+            cars_positive = False
+
+        ccr = CarsCavcsResult(num_events ,
+                              cars_cum, cars_std_err, cars_t_test, cars_significant,
+                              cars_positive, cars_num_stocks_positive, cars_num_stocks_negative,
+                              0, 0, 0, False,
+                              False, 0, 0)
+                              
+                              
+        return ccr
+
+        #return na_mean, na_std, i_no_events
 
     def calculate_using_single_factor_benchmark(self, event_matrix, stock_data, market_symbol, estimation_window=200, buffer=5,
                                                 pre_event_window=10, post_event_window=10):
@@ -175,6 +275,8 @@ class Calculator(object):
         Modeled after http://arno.uvt.nl/show.cgi?fid=129765
 
         '''
+        
+        
 
         import pandas as pd
         import numpy as np
@@ -191,7 +293,11 @@ class Calculator(object):
         date11 = dates[index1 - buffer]
         date12 = dates[index1 - (buffer + estimation_window)]
 
-        # import pdb; pdb.set_trace()
+        #check remove duplicates
+        
+        stock_data.index.value_counts()
+        stock_data.drop_duplicates(inplace = True)
+
 
         try:
 
@@ -204,6 +310,18 @@ class Calculator(object):
             #For AV
             closing_prices = stock_data['adjusted_close']
             volumes = stock_data['volume']
+        
+        # check for duplicates
+        closing_prices.index.value_counts()
+        
+        '''(RGR, 2005-12-30 00:00:00)    2
+            (SPY, 2000-12-29 00:00:00)    2
+            (RGR, 2006-12-29 00:00:00)    2'''
+        
+        # removing duplicates
+        
+        
+        # now we are ready to do anlaysis
 
         stock_ret = closing_prices.copy()
         vlm_changes0 = closing_prices.copy()
@@ -212,13 +330,14 @@ class Calculator(object):
         symbols = stock_data.index.get_level_values(0).unique().tolist()
 
         mypct = lambda x: x[-1] - np.mean(x[:-1])
-
-        for symbol in symbols:
-            stock_ret[symbol] = closing_prices[symbol].pct_change().fillna(0)
-            # import pdb; pdb.set_trace()
-            vlm_changes[symbol] = volumes[symbol].rolling(5, 5).apply(mypct).fillna(0)
-            # vlm_changes[symbol] = volumes[symbol].pct_change().fillna(0).apply(lambda x : min(3,x))
-
+        
+        
+        stock_ret = closing_prices.pct_change().fillna(0)
+        
+        vlm_changes = volumes.rolling(5, 5).apply(mypct).fillna(0)
+        
+        
+     
         # do regeression
 
         pre_stock_returns = stock_ret[
@@ -230,9 +349,6 @@ class Calculator(object):
         # **************
         # First compute cars ******
         # ***************
-
-        # import pdb; pdb.set_trace()
-
 
         dates = stock_data.index.get_level_values(1).unique().tolist()
 
@@ -250,8 +366,6 @@ class Calculator(object):
         index = pd.MultiIndex.from_tuples(tuples, names=['first', 'second'])
 
         df_regress = pd.DataFrame(0.0, index=index, columns=symbols)
-
-        # import pdb; pdb.set_trace()
 
         for stock in stocks:
             # set up data
@@ -275,8 +389,6 @@ class Calculator(object):
 
             # y2.argsort()[::-1][:n]
 
-
-            # import pdb; pdb.set_trace()
 
             slope2, intercept2, cavs0 = regress_vals(x2, y2)
             cavs = np.cumsum(cavs0)
@@ -314,122 +426,128 @@ class Calculator(object):
 
         # now the big loop
 
-        # import pdb; pdb.set_trace()
-
-        for stock in stocks:
-
-            slope1 = df_regress.loc[('cars', 'slope'), stock]
-            intercept1 = df_regress.loc[('cars', 'intercept'), stock]
-
-            slope2 = df_regress.loc[('cavs', 'slope'), stock]
-            intercept2 = df_regress.loc[('cavs', 'intercept'), stock]
-
-            ccr = []
-            cvr = []
-
-            for event in events.iterrows():
-                dt1 = event[0]
-                idx1 = dates.index(dt1)
-                window = dates[idx1 - pre_event_window:idx1 + post_event_window + 1]
-
-                event_rets = stock_ret[stock][window]
-                event_mkt_ret = stock_ret[market_symbol][window]
-                # calculate excess returns
-                event_ex_ret = event_rets - (slope1 * event_mkt_ret + intercept1)
-
-                event_cum_rets = np.cumprod(event_rets + 1, axis=0)
-                # plot_regressvals(event_mkt_ret,event_rets,slope1, intercept1,event_cum_rets,stock)
-
-                ccr.append(event_ex_ret.tolist())
-
-                cars = (event_cum_rets[-1] - 1) / len(window)
-
-                # now for vols
-                event_vols = vlm_changes[stock][window]
-                mkt_vols = vlm_changes[market_symbol][window]
-                event_ex_vols = event_vols - (slope2 * mkt_vols + intercept2)
-                event_cum_ex_vols = np.cumsum(event_ex_vols)
-                # plot_regressvals(mkt_vols,event_ex_vols,slope2, intercept2,event_cum_ex_vols,stock)
-                cvr.append(event_ex_vols.tolist())
-
-            # *********************
-            # now do computations for the whole stock
-
-            # import pdb; pdb.set_trace()
-
-            #print(ccr)
-            cars_stock = np.array(ccr)
-
-            ccarray.append(cars_stock)
-            # df_results.loc[(slice(None),stock),'cars'].tolist()
-            cars = np.mean(cars_stock, axis=0)
-
-            std1 = np.std(cars)
-
-            cars_t_test = np.mean(cars) / std1 * np.sqrt(len(window))
-
-            pval1 = 1 - stats.t.cdf(cars_t_test, df=len(cars))
-
-            if (pval1 < .05):
-                cars_significant = True
-            else:
-                cars_significant = False
-
-            if np.mean(cars) >= 0:
-                cars_positive = True
-            else:
-                cars_positive = False
-
-            cars_cum = np.cumprod(cars + 1, axis=0)
-
-            # import pdb; pdb.set_trace()
-
-            # plt.plot(cars_cum); plt.title('Cars'); plt.show()
-
-            # do the same for volumes
-            # ***************
-
-            cavs_stock = np.array(cvr)
-
-            cvarray.append(cavs_stock)
-
-            cavs = np.mean(cavs_stock, axis=0)
-
-            std2 = np.std(cavs)
-
-            cavs_t_test = np.mean(cavs) / std2 * np.sqrt(len(window))
-
-            pval2 = 1 - stats.t.cdf(cavs_t_test, df=len(cavs))
-
-            if (pval2 < .05):
-                cavs_significant = True
-            else:
-                cavs_significant = False
-
-            if np.mean(cavs) >= 0:
-                cavs_positive = True
-            else:
-                cavs_positive = False
-
-            cavs_cum = np.cumsum(cavs, axis=0)
-
-            # import pdb; pdb.set_trace()
+        try:
 
 
-            # plt.plot(cavs_cum); plt.title('Cavs'); plt.show()
+            for stock in stocks:
+
+                slope1 = df_regress.loc[('cars', 'slope'), stock]
+                intercept1 = df_regress.loc[('cars', 'intercept'), stock]
+
+                slope2 = df_regress.loc[('cavs', 'slope'), stock]
+                intercept2 = df_regress.loc[('cavs', 'intercept'), stock]
+
+                ccr = []
+                cvr = []
+
+                for event in events.iterrows():
+                    dt1 = event[0]
+                    idx1 = dates.index(dt1)
+                    window = dates[idx1 - pre_event_window:idx1 + post_event_window + 1]
+
+                    dummy_rets = pd.Series(0.0, index = window)
+                    event_rets =  stock_ret.loc[stock,window].loc[stock,slice(None)]
+                    event_mkt_ret = stock_ret.loc[market_symbol,window].loc[market_symbol,slice(None)]
+                    
+                    # calculate excess returns
+                    
+                    event_ex_ret = event_rets.subtract(slope1 *  event_mkt_ret + intercept1 , fill_value=0.0)
+                    
+                    event_ex_ret = event_ex_ret.subtract(dummy_rets , fill_value=0.0)
 
 
-            #  store the results *******
+                    event_cum_rets = np.cumprod(event_rets + 1, axis=0)
+                    # plot_regressvals(event_mkt_ret,event_rets,slope1, intercept1,event_cum_rets,stock)
 
-            df_results.loc[(stock, 'cars'), 'positive'] = cars_positive
+                    ccr.append((event_ex_ret.tolist()))
 
-            df_results.loc[(stock, 'cars'), 'significant'] = cars_significant
+                    cars = (event_cum_rets[-1] - 1) / len(window)
 
-            df_results.loc[(stock, 'cavs'), 'positive'] = cavs_positive
+                    # now for vols
+                    event_vols = vlm_changes.loc[stock,window].loc[stock,slice(None)]
+                    mkt_vols = vlm_changes.loc[market_symbol,window].loc[market_symbol,slice(None)]
+                    
+                    event_ex_vols = event_vols.subtract(slope2 * mkt_vols + intercept2, fill_value=0.0)
+                    event_ex_vols = event_vols.subtract(dummy_rets, fill_value=0.0)
 
-            df_results.loc[(stock, 'cavs'), 'significant'] = cavs_significant
+                    event_cum_ex_vols = np.cumsum(event_ex_vols)
+                    # plot_regressvals(mkt_vols,event_ex_vols,slope2, intercept2,event_cum_ex_vols,stock)
+                    cvr.append(event_ex_vols.tolist())
 
-        # import pdb; pdb.set_trace()
+                # *********************
+                # now do computations for the whole stock
+
+                #print(ccr)
+                cars_stock = np.array([np.array(c) for c in ccr])
+                
+                ccarray.append(cars_stock)
+                # df_results.loc[(slice(None),stock),'cars'].tolist()
+                cars = np.mean(cars_stock, axis=0)
+
+                std1 = np.std(cars)
+
+                cars_t_test = np.mean(cars) / std1 * np.sqrt(len(window))
+
+                pval1 = 1 - stats.t.cdf(cars_t_test, df=len(cars))
+
+                if (pval1 < .05):
+                    cars_significant = True
+                else:
+                    cars_significant = False
+
+                if np.mean(cars) >= 0:
+                    cars_positive = True
+                else:
+                    cars_positive = False
+
+                cars_cum = np.cumprod(cars + 1, axis=0)
+
+                # plt.plot(cars_cum); plt.title('Cars'); plt.show()
+
+                # do the same for volumes
+                # ***************
+
+                cavs_stock = np.array(cvr)
+
+                cvarray.append(cavs_stock)
+
+                cavs = np.mean(cavs_stock, axis=0)
+
+                std2 = np.std(cavs)
+
+                cavs_t_test = np.mean(cavs) / std2 * np.sqrt(len(window))
+
+                pval2 = 1 - stats.t.cdf(cavs_t_test, df=len(cavs))
+
+                if (pval2 < .05):
+                    cavs_significant = True
+                else:
+                    cavs_significant = False
+
+                if np.mean(cavs) >= 0:
+                    cavs_positive = True
+                else:
+                    cavs_positive = False
+
+                cavs_cum = np.cumsum(cavs, axis=0)
+
+
+                # plt.plot(cavs_cum); plt.title('Cavs'); plt.show()
+
+
+                #  store the results *******
+
+                df_results.loc[(stock, 'cars'), 'positive'] = cars_positive
+
+                df_results.loc[(stock, 'cars'), 'significant'] = cars_significant
+
+                df_results.loc[(stock, 'cavs'), 'positive'] = cavs_positive
+
+                df_results.loc[(stock, 'cavs'), 'significant'] = cavs_significant
+
+        except Exception as e:
+            assert e, e
+            print(e)
 
         # aggregate results for output
         # ****************
@@ -453,8 +571,6 @@ class Calculator(object):
         cavcs_num_stocks_significant = sum(significant2)
 
         # The full calculations *********
-
-        # import pdb; pdb.set_trace()
 
         Cars = np.mean(np.array(ccarray), axis=0)
 
@@ -484,7 +600,6 @@ class Calculator(object):
         # Now cavs ******
         # *************
 
-        # import pdb; pdb.set_trace()
         Cavcs = np.mean(np.array(cvarray), axis=0)
 
         cavcs_std_err = np.std(Cavcs, axis=0)
@@ -509,7 +624,6 @@ class Calculator(object):
 
         # Final  Results to CarsCavcsResult
 
-        # import pdb; pdb.set_trace()
         ccr = CarsCavcsResult(num_events,
                               cars_cum, cars_std_err, cars_t_testf, cars_significant,
                               cars_positive, cars_num_stocks_positive, cars_num_stocks_negative,
