@@ -83,19 +83,19 @@ class CarsCavcsResult(object):
         self.cavcs_num_stocks_negative = cavcs_num_stocks_negative
 
     def results_as_string(self):
-
-        result_string = 'CARS Results' + '\n'
-        result_string += '  Number of stocks with +CARS = ' + str(self.cars_num_stocks_positive) + '\n'
-        result_string += '  Number of stocks with -CARS = ' + str(self.cars_num_stocks_negative) + '\n'
-        result_string += '  CARS t-test value = ' + str(self.cars_t_test) + '\n'
-        result_string += '  CARS significant = ' + str(self.cars_significant) + '\n'
-        result_string += '  CARS positive = ' + str(self.cars_positive) + '\n'
+        result_string = 'Number of events processed: ' + str(self.num_events) + '\n'
+        result_string += 'CARS Results' + '\n'
+        result_string += '  Number of stocks with +CARS: ' + str(self.cars_num_stocks_positive) + '\n'
+        result_string += '  Number of stocks with -CARS: ' + str(self.cars_num_stocks_negative) + '\n'
+        result_string += '  CARS t-test value: ' + str(self.cars_t_test) + '\n'
+        result_string += '  CARS significant: ' + str(self.cars_significant) + '\n'
+        result_string += '  CARS positive: ' + str(self.cars_positive) + '\n'
         result_string += 'CAVCS Results' + '\n'
-        result_string += '  Number of stocks with +CAVCS = ' + str(self.cavcs_num_stocks_positive) + '\n'
-        result_string += '  Number of stocks with -CAVCS = ' + str(self.cavcs_num_stocks_negative) + '\n'
-        result_string += '  CAVCS full t-test value = ' + str(self.cavcs_t_test) + '\n'
-        result_string += '  CAVCS significant = ' + str(self.cavcs_significant) + '\n'
-        result_string += '  CAVCS positive = ' + str(self.cavcs_positive) + '\n'
+        result_string += '  Number of stocks with +CAVCS: ' + str(self.cavcs_num_stocks_positive) + '\n'
+        result_string += '  Number of stocks with -CAVCS: ' + str(self.cavcs_num_stocks_negative) + '\n'
+        result_string += '  CAVCS full t-test value: ' + str(self.cavcs_t_test) + '\n'
+        result_string += '  CAVCS significant: ' + str(self.cavcs_significant) + '\n'
+        result_string += '  CAVCS positive: ' + str(self.cavcs_positive) + '\n'
 
         return result_string
 
@@ -192,6 +192,7 @@ class Calculator(object):
                     na_all_rets = np.vstack((na_all_rets, na_stock_rets))
                             
         except Exception as e:
+            assert e, e
             print(e)
 
         if len(na_all_rets.shape) == 1:
@@ -210,8 +211,7 @@ class Calculator(object):
         cars = np.mean(na_all_rets, axis=0)
 
         cars_std_err = np.std(na_all_rets,axis=0)
-        
-        
+
         na_cum_rets = np.cumprod(na_all_rets + 1, axis=1)
         na_cum_rets = (na_cum_rets.T / na_cum_rets[:, look_back]).T
         
@@ -230,11 +230,13 @@ class Calculator(object):
         std1 = np.std(cars)
         
         cars_t_test = np.mean(cars) /std1 * np.sqrt(len(cars))
+        print('cars_t_test: {}'.format(cars_t_test))
                                                     
 
         from scipy import stats
         
         pval1 = 1 - stats.t.cdf(cars_t_test,df=len(cars))
+        print('pval: {}'.format(pval1))
         
         if(pval1 < .05):
             cars_significant = True

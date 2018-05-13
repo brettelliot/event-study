@@ -30,7 +30,7 @@ def main():
     # Define the start and end date of the study
     start_date = datetime.datetime(2000, 1, 1)
     end_date = datetime.datetime(2017, 12, 31)
-    value_threshold = 1
+    value_threshold = 10
     look_back = 0
     look_forward = 10
     csv_file_name = '../data/events/event_dates.csv'
