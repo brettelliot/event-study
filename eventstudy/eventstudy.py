@@ -144,7 +144,7 @@ class Calculator(object):
         #abnr = daily_returns.subtract(beta * daily_returns[market_symbol],level=1)
         
         for sym in symbols:
-            abnormal_returns.loc[sym,slice(None)] -=  beta * daily_returns.loc[market_symbol,slice(None)].values
+            abnormal_returns.loc[sym,slice(None)] -= beta * daily_returns.loc[market_symbol,slice(None)].values
 
         # remove the market symbol from the returns and event matrix. It's no longer needed.
         del daily_returns[market_symbol]
@@ -337,10 +337,14 @@ class Calculator(object):
         stock_ret = closing_prices.pct_change().fillna(0)
         
         vlm_changes = volumes.rolling(5, 5).apply(mypct).fillna(0)
-        
-        
-     
+
         # do regeression
+        print(date12)
+        print(date11)
+        #print(stock_ret[(stock_data.index.get_level_values(1) > date12)])
+        #print(stock_ret[(stock_data.index.get_level_values(1) <= date11)])
+        print(stock_ret[
+            (stock_data.index.get_level_values(1) > date12) & (stock_data.index.get_level_values(1) <= date11)])
 
         pre_stock_returns = stock_ret[
             (stock_data.index.get_level_values(1) > date12) & (stock_data.index.get_level_values(1) <= date11)]
@@ -371,6 +375,7 @@ class Calculator(object):
 
         for stock in stocks:
             # set up data
+            print(stock)
 
             x1 = pre_stock_returns[market_symbol]
 
@@ -655,7 +660,12 @@ def regress_vals(x, y):
 
     A = np.vstack([x, np.ones(len(x))]).T
 
-    slope, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
+    try:
+        slope, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
+    except Exception as e:
+        print(e)
+        exit(0)
+
 
     # print(slope, intercept)
     yhat = slope * x + intercept

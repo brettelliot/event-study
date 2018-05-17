@@ -22,8 +22,8 @@ def main():
     logger = logging.getLogger()
 
     # Define the symbols to study
-    #symbols = ['LUV', 'DAL', 'AAL', 'ALK']
-    symbols = ['LUV', 'ALK']
+    symbols = ['LUV', 'DAL', 'AAL', 'ALK']
+    #symbols = ['LUV', 'ALK']
 
     # Define the market symbol to compare against
     market_symbol = "SPY"

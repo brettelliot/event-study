@@ -30,7 +30,7 @@ def main():
     # Define the start and end date of the study
     start_date = datetime.datetime(2000, 1, 1)
     end_date = datetime.datetime(2017, 12, 31)
-    value_threshold = 1
+    value_threshold = 10
     estimation_window = 200
     buffer = 5
     pre_event_window = 0
