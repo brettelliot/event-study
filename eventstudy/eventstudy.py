@@ -47,7 +47,7 @@ class CarsCavcsResult(object):
                  cars_num_stocks_negative,
                  cavcs, cavcs_std_err, cavcs_t_test, cavcs_significant, cavcs_positive, cavcs_num_stocks_positive,
                  cavcs_num_stocks_negative):
-        '''
+        """
         :param num_events: the number of events in the matrix
         :param cars: time series of Cumulative Abnormal Return
         :params cars_std_err: std error of the CARs
@@ -65,7 +65,7 @@ class CarsCavcsResult(object):
         :param cavcs_num_stocks_negative: The number of stocks for which the CAVC was significantly negative
 
         All of the above t-tests are significant when they are in the 95% confidence levels
-        '''
+        """
         self.num_events = num_events
         self.cars = cars
         self.cars_std_err = cars_std_err
@@ -105,8 +105,7 @@ class Calculator(object):
         pass
 
     def calculate_using_naive_benchmark(self, event_matrix, stock_data, market_symbol, look_back, look_forward):
-        '''
-
+        """
         :param event_matrix:
         :param stock_data:
         :param market_symbol:
@@ -118,42 +117,67 @@ class Calculator(object):
 
         Most of the code was from here:
         https://github.com/brettelliot/QuantSoftwareToolkit/blob/master/QSTK/qstkstudy/EventProfiler.py
-        '''
+        """
 
         # Copy the stock prices into a new dataframe which will become filled with the returns
-        daily_returns = stock_data.copy()
-        
-        #stock_data['RGR'][stock_data['RGR'].index == '2011-12-30']
-        
-        #daily_returns['RGR'][daily_returns['RGR'].index == '2011-12-30']
 
+        #import pdb;
+        #pdb.set_trace()
+
+        try:
+
+            # For IB
+            daily_returns = stock_data['Close'].copy()
+            volumes = stock_data['Volume'].copy()
+
+        except KeyError:
+
+            # For AV
+            daily_returns = stock_data['adjusted_close'].copy()
+            volumes = stock_data['volume'].copy()
 
         # Convert prices into daily returns.
         # This is the amount that the specific stock increased or decreased in value for one day.
         daily_returns = daily_returns.pct_change().fillna(0)
 
+        mypct = lambda x: x[-1] - np.mean(x[:-1])
+
+        vlm_changes = volumes.rolling(5, 5).apply(mypct).fillna(0)
+
         # Subtract the market returns from all of the stock's returns. The result is the abnormal return.
         # beta = get_beta()
         beta = 1.0  # deal with beta later
-        
-        symbols =  daily_returns.index.get_level_values(0).unique()
+
+        symbols = daily_returns.index.get_level_values(0).unique()
 
         abnormal_returns = daily_returns.copy()
-        
-        daily_returns.index.value_counts()
-        #abnr = daily_returns.subtract(beta * daily_returns[market_symbol],level=1)
-        
+        ex_vols = vlm_changes.copy()
+
+        #print(daily_returns.index.value_counts())
+        #print(ex_vols.index.value_counts())
+
+        #import pdb;
+        #pdb.set_trace()
+
         for sym in symbols:
-            abnormal_returns.loc[sym,slice(None)] -= beta * daily_returns.loc[market_symbol,slice(None)].values
+            abnormal_returns.loc[sym, slice(None)] -= beta * daily_returns.loc[market_symbol, slice(None)].values
+            ex_vols.loc[sym, slice(None)] -= beta * vlm_changes.loc[market_symbol, slice(None)].values
+
+        #import pdb;
+        #pdb.set_trace()
 
         # remove the market symbol from the returns and event matrix. It's no longer needed.
         del daily_returns[market_symbol]
+        del vlm_changes[market_symbol]
         del abnormal_returns[market_symbol]
-        del event_matrix[market_symbol]
+        del ex_vols[market_symbol]
+
+        try:
+            del event_matrix[market_symbol]
+        except KeyError as e:
+            pass
 
         # From QSTK
-        # daily_returns = daily_returns.reindex(columns=event_matrix.columns)
-
         # Removing the starting and the end events
         event_matrix.values[0:look_back, :] = np.NaN
         event_matrix.values[-look_forward:, :] = np.NaN
@@ -161,106 +185,156 @@ class Calculator(object):
         # Number of events
         i_no_events = int(np.logical_not(np.isnan(event_matrix.values)).sum())
         assert i_no_events > 0, "Zero events in the event matrix"
-        
-        na_all_rets   = "False"
 
-        results = pd.DataFrame(index = symbols,columns =['pos','neg'])
-        
+        na_all_rets = "False"
+        na_all_vlms = "False"
+
+        # import pdb; pdb.set_trace()
+
+        results = pd.DataFrame(index=symbols, columns=['pos', 'neg', 'vpos', 'vneg'])
+
         # Looking for the events and pushing them to a matrix
+        #print(event_matrix.columns)
+        #print(symbols)
         try:
-            for i, s_sym in enumerate(event_matrix.columns):
+            #for i, s_sym in enumerate(event_matrix.columns):
+            for s_sym in symbols:
+                if s_sym == market_symbol:
+                    continue
                 na_stock_rets = "False"
+                na_stock_vlms = "False"
                 for j, dt_date in enumerate(event_matrix.index):
+
                     if event_matrix[s_sym][dt_date] == 1:
+
                         na_ret = abnormal_returns[s_sym][j - look_back:j + 1 + look_forward]
+                        na_vls = ex_vols[s_sym][j - look_back:j + 1 + look_forward]
+
                         if type(na_stock_rets) == type(""):
                             na_stock_rets = na_ret
+                            na_stock_vlms = na_vls
                         else:
                             na_stock_rets = np.vstack((na_stock_rets, na_ret))
-            
-                #reurns for a particular stock analyze here
+                            na_stock_vlms = np.vstack((na_stock_vlms, na_vls))
+
+                # reurns/vols for a particular stock analyze here
                 # then append to all rets
 
-                if(np.mean(na_stock_rets)  > 0):
-                    results.loc[s_sym,'pos'] = True
+                #import pdb;
+                #pdb.set_trace()
+
+                if (np.mean(na_stock_rets) > 0):
+                    results.loc[s_sym, 'pos'] = True
                 else:
-                    results.loc[s_sym,'neg'] = True
-                
+                    results.loc[s_sym, 'neg'] = True
+
+                if (np.mean(na_stock_vlms) > 0):
+                    results.loc[s_sym, 'vpos'] = True
+                else:
+                    results.loc[s_sym, 'vneg'] = True
+
                 if type(na_all_rets) == type(""):
                     na_all_rets = na_stock_rets
+                    na_all_vlms = na_stock_vlms
                 else:
                     na_all_rets = np.vstack((na_all_rets, na_stock_rets))
-                            
+                    na_all_vlms = np.vstack((na_all_vlms, na_stock_vlms))
+
+
         except Exception as e:
-            assert e, e
-            print(e)
+            #import pdb;
+            #pdb.set_trace()
+            #print(e)
+            raise e
+
+        #import pdb;
+        #pdb.set_trace()
 
         if len(na_all_rets.shape) == 1:
             na_all_rets = np.expand_dims(na_all_rets, axis=0)
 
-        # Computing daily rets and retuns
-        #
+        # Computing daily returns
 
-        # Study Params
-        
-        # print(na_mean)
-        # print(na_mean.shape)
-        
         num_events = len(na_all_rets)
-        
-        cars = np.mean(na_all_rets, axis=0)
 
-        cars_std_err = np.std(na_all_rets,axis=0)
+        cars = np.mean(na_all_rets, axis=0)
+        cavs = np.mean(na_all_vlms, axis=0)
+
+        cars_std_err = np.std(na_all_rets, axis=0)
+        cavs_std_err = np.std(na_all_vlms, axis=0)
 
         na_cum_rets = np.cumprod(na_all_rets + 1, axis=1)
         na_cum_rets = (na_cum_rets.T / na_cum_rets[:, look_back]).T
-        
-        cars_cum = np.mean(na_cum_rets,axis=0)
 
-        if (cars_cum[-1] -1 ) > 0 :
+        na_cum_vlms = np.cumsum(na_all_vlms, axis=1)
+
+        cars_cum = np.mean(na_cum_rets, axis=0)
+        cavs_cum = np.mean(na_cum_vlms, axis=0)
+
+        if (cars_cum[-1] - 1) > 0:
             cars_positive = True
         else:
             cars_positive = False
 
+        if (cavs_cum[-1]) > 0:
+            cavs_positive = True
+        else:
+            cavs_positive = False
+
         cars_num_stocks_positive = results['pos'].sum()
-        
+
         cars_num_stocks_negative = results['neg'].sum()
 
+        cavs_num_stocks_positive = results['vpos'].sum()
+
+        cavs_num_stocks_negative = results['vneg'].sum()
 
         std1 = np.std(cars)
-        
-        cars_t_test = np.mean(cars) /std1 * np.sqrt(len(cars))
-        print('cars_t_test: {}'.format(cars_t_test))
-                                                    
+
+        cars_t_test = np.mean(cars) / std1 * np.sqrt(len(cars))
+
+        std2 = np.std(cavs)
+        cavs_t_test = np.mean(cavs) / std2 * np.sqrt(len(cavs))
+
+        #import pdb;
+        #pdb.set_trace()
 
         from scipy import stats
-        
-        pval1 = 1 - stats.t.cdf(cars_t_test,df=len(cars))
-        print('pval: {}'.format(pval1))
-        
-        if(pval1 < .05):
+
+        # pval1 = 1 - stats.t.cdf(cars_t_test,df=len(cars))
+
+        pval1 = 2 * (1 - stats.t.cdf(abs(cars_t_test), df=num_events))
+
+        # pvalues = 2*(1-tcdf(abs(t),n-v))
+
+        pval2 = 2 * (1 - stats.t.cdf(abs(cavs_t_test), df=num_events))
+
+        if (pval1 < .05):
             cars_significant = True
         else:
             cars_significant = False
-                                                    
-                                                    
-        if (cars_t_test > 0):
-            cars_positive = True
-        else:
-            cars_positive = False
 
-        ccr = CarsCavcsResult(num_events ,
+        if (pval2 < .05):
+            cavs_significant = True
+        else:
+            cavs_significant = False
+
+        #import pdb;
+        #pdb.set_trace()
+
+        ccr = CarsCavcsResult(num_events,
                               cars_cum, cars_std_err, cars_t_test, cars_significant,
                               cars_positive, cars_num_stocks_positive, cars_num_stocks_negative,
-                              0, 0, 0, False,
-                              False, 0, 0)
-                              
-                              
+                              cavs_cum, cavs_std_err, cavs_t_test, cavs_significant,
+                              cavs_positive, cavs_num_stocks_positive, cavs_num_stocks_negative)
+
         return ccr
 
-        #return na_mean, na_std, i_no_events
+        #import pdb;
+        #pdb.set_trace()
 
-    def calculate_using_single_factor_benchmark(self, event_matrix, stock_data, market_symbol, estimation_window=200, buffer=5,
+    def calculate_using_single_factor_benchmark(self, event_matrix, stock_data, market_symbol, estimation_window=200,
+                                                buffer=5,
                                                 pre_event_window=10, post_event_window=10):
         '''
 
@@ -277,8 +351,6 @@ class Calculator(object):
         Modeled after http://arno.uvt.nl/show.cgi?fid=129765
 
         '''
-        
-        
 
         import pandas as pd
         import numpy as np
@@ -295,11 +367,15 @@ class Calculator(object):
         date11 = dates[index1 - buffer]
         date12 = dates[index1 - (buffer + estimation_window)]
 
-        #check remove duplicates
-        
-        stock_data.index.value_counts()
-        stock_data.drop_duplicates(inplace = True)
+        #import pdb;
+        #pdb.set_trace()
 
+        # check remove duplicates
+
+        stock_data.index.value_counts()
+        stock_data.drop_duplicates(inplace=True)
+
+        # import pdb; pdb.set_trace()
 
         try:
 
@@ -309,42 +385,33 @@ class Calculator(object):
 
         except KeyError:
 
-            #For AV
+            # For AV
             closing_prices = stock_data['adjusted_close']
             volumes = stock_data['volume']
-        
+
         # check for duplicates
         closing_prices.index.value_counts()
-        
+
         '''(RGR, 2005-12-30 00:00:00)    2
             (SPY, 2000-12-29 00:00:00)    2
             (RGR, 2006-12-29 00:00:00)    2'''
-        
+
         # removing duplicates
-        
-        
+
+
         # now we are ready to do anlaysis
 
         stock_ret = closing_prices.copy()
-        vlm_changes0 = closing_prices.copy()
-        vlm_changes = closing_prices.copy()
 
         symbols = stock_data.index.get_level_values(0).unique().tolist()
 
         mypct = lambda x: x[-1] - np.mean(x[:-1])
-        
-        
+
         stock_ret = closing_prices.pct_change().fillna(0)
-        
+
         vlm_changes = volumes.rolling(5, 5).apply(mypct).fillna(0)
 
         # do regeression
-        print(date12)
-        print(date11)
-        #print(stock_ret[(stock_data.index.get_level_values(1) > date12)])
-        #print(stock_ret[(stock_data.index.get_level_values(1) <= date11)])
-        print(stock_ret[
-            (stock_data.index.get_level_values(1) > date12) & (stock_data.index.get_level_values(1) <= date11)])
 
         pre_stock_returns = stock_ret[
             (stock_data.index.get_level_values(1) > date12) & (stock_data.index.get_level_values(1) <= date11)]
@@ -355,6 +422,9 @@ class Calculator(object):
         # **************
         # First compute cars ******
         # ***************
+
+        #import pdb;
+        #pdb.set_trace()
 
         dates = stock_data.index.get_level_values(1).unique().tolist()
 
@@ -373,9 +443,10 @@ class Calculator(object):
 
         df_regress = pd.DataFrame(0.0, index=index, columns=symbols)
 
+        # import pdb; pdb.set_trace()
+
         for stock in stocks:
             # set up data
-            print(stock)
 
             x1 = pre_stock_returns[market_symbol]
 
@@ -396,6 +467,8 @@ class Calculator(object):
 
             # y2.argsort()[::-1][:n]
 
+
+            # import pdb; pdb.set_trace()
 
             slope2, intercept2, cavs0 = regress_vals(x2, y2)
             cavs = np.cumsum(cavs0)
@@ -433,8 +506,10 @@ class Calculator(object):
 
         # now the big loop
 
-        try:
+        #import pdb;
+        #pdb.set_trace()
 
+        try:
 
             for stock in stocks:
 
@@ -452,28 +527,27 @@ class Calculator(object):
                     idx1 = dates.index(dt1)
                     window = dates[idx1 - pre_event_window:idx1 + post_event_window + 1]
 
-                    dummy_rets = pd.Series(0.0, index = window)
-                    event_rets =  stock_ret.loc[stock,window].loc[stock,slice(None)]
-                    event_mkt_ret = stock_ret.loc[market_symbol,window].loc[market_symbol,slice(None)]
-                    
-                    # calculate excess returns
-                    
-                    event_ex_ret = event_rets.subtract(slope1 *  event_mkt_ret + intercept1 , fill_value=0.0)
-                    
-                    event_ex_ret = event_ex_ret.subtract(dummy_rets , fill_value=0.0)
+                    dummy_rets = pd.Series(0.0, index=window)
+                    event_rets = stock_ret.loc[stock, window].loc[stock, slice(None)]
+                    event_mkt_ret = stock_ret.loc[market_symbol, window].loc[market_symbol, slice(None)]
 
+                    # calculate excess returns
+
+                    event_ex_ret = event_rets.subtract(slope1 * event_mkt_ret + intercept1, fill_value=0.0)
+
+                    event_ex_ret = event_ex_ret.subtract(dummy_rets, fill_value=0.0)
 
                     event_cum_rets = np.cumprod(event_rets + 1, axis=0)
                     # plot_regressvals(event_mkt_ret,event_rets,slope1, intercept1,event_cum_rets,stock)
 
                     ccr.append((event_ex_ret.tolist()))
 
-                    cars = (event_cum_rets[-1] - 1) / len(window)
+                    # cars = (event_cum_rets[-1] - 1) / len(window)
 
                     # now for vols
-                    event_vols = vlm_changes.loc[stock,window].loc[stock,slice(None)]
-                    mkt_vols = vlm_changes.loc[market_symbol,window].loc[market_symbol,slice(None)]
-                    
+                    event_vols = vlm_changes.loc[stock, window].loc[stock, slice(None)]
+                    mkt_vols = vlm_changes.loc[market_symbol, window].loc[market_symbol, slice(None)]
+
                     event_ex_vols = event_vols.subtract(slope2 * mkt_vols + intercept2, fill_value=0.0)
                     event_ex_vols = event_ex_vols.subtract(dummy_rets, fill_value=0.0)
 
@@ -484,9 +558,12 @@ class Calculator(object):
                 # *********************
                 # now do computations for the whole stock
 
-                #print(ccr)
+                #import pdb;
+                #pdb.set_trace()
+
+                # print(ccr)
                 cars_stock = np.array([np.array(c) for c in ccr])
-                
+
                 ccarray.append(cars_stock)
                 # df_results.loc[(slice(None),stock),'cars'].tolist()
                 cars = np.mean(cars_stock, axis=0)
@@ -495,7 +572,9 @@ class Calculator(object):
 
                 cars_t_test = np.mean(cars) / std1 * np.sqrt(len(window))
 
-                pval1 = 1 - stats.t.cdf(cars_t_test, df=len(cars))
+                # pval1 = 1 - stats.t.cdf(cars_t_test, df=len(cars))
+
+                pval1 = 2 * (1 - stats.t.cdf(abs(cars_t_test), df=len(cars_stock)))
 
                 if (pval1 < .05):
                     cars_significant = True
@@ -508,6 +587,9 @@ class Calculator(object):
                     cars_positive = False
 
                 cars_cum = np.cumprod(cars + 1, axis=0)
+
+                #import pdb;
+                #pdb.set_trace()
 
                 # plt.plot(cars_cum); plt.title('Cars'); plt.show()
 
@@ -524,7 +606,9 @@ class Calculator(object):
 
                 cavs_t_test = np.mean(cavs) / std2 * np.sqrt(len(window))
 
-                pval2 = 1 - stats.t.cdf(cavs_t_test, df=len(cavs))
+                # pval2 = 1 - stats.t.cdf(cavs_t_test, df=len(cavs))
+
+                pval2 = 2 * (1 - stats.t.cdf(abs(cavs_t_test), df=len(cavs_stock)))
 
                 if (pval2 < .05):
                     cavs_significant = True
@@ -537,6 +621,8 @@ class Calculator(object):
                     cavs_positive = False
 
                 cavs_cum = np.cumsum(cavs, axis=0)
+
+                # import pdb; pdb.set_trace()
 
 
                 # plt.plot(cavs_cum); plt.title('Cavs'); plt.show()
@@ -553,8 +639,13 @@ class Calculator(object):
                 df_results.loc[(stock, 'cavs'), 'significant'] = cavs_significant
 
         except Exception as e:
-            assert e, e
-            print(e)
+            #import pdb;
+            #pdb.set_trace()
+            #print(e)
+            raise
+
+        import pdb;
+        #pdb.set_trace()
 
         # aggregate results for output
         # ****************
@@ -579,6 +670,8 @@ class Calculator(object):
 
         # The full calculations *********
 
+        # import pdb; pdb.set_trace()
+
         Cars = np.mean(np.array(ccarray), axis=0)
 
         num_events = len(Cars)
@@ -591,7 +684,8 @@ class Calculator(object):
 
         cars_t_testf = np.mean(Cars) / np.std(cars) * np.sqrt(len(window))
 
-        pval1 = 1 - stats.t.cdf(cars_t_testf, df=len(Cars))
+        # pval1 = 1 - stats.t.cdf(cars_t_testf, df=len(Cars))
+        pval1 = 2 * (1 - stats.t.cdf(abs(cars_t_testf), df=num_events))
 
         if (pval1 < .05):
             cars_significant = True
@@ -607,6 +701,7 @@ class Calculator(object):
         # Now cavs ******
         # *************
 
+        # import pdb; pdb.set_trace()
         Cavcs = np.mean(np.array(cvarray), axis=0)
 
         cavcs_std_err = np.std(Cavcs, axis=0)
@@ -617,7 +712,8 @@ class Calculator(object):
 
         cavcs_t_testf = np.mean(Cavcs) / np.std(cavcs) * np.sqrt(len(window))
 
-        pval2 = 1 - stats.t.cdf(cavcs_t_testf, df=len(Cavcs))
+        # pval2 = 1 - stats.t.cdf(cavcs_t_testf, df=len(Cavcs))
+        pval2 = 2 * (1 - stats.t.cdf(abs(cavcs_t_testf), df=num_events))
 
         if (pval2 < .05):
             cavcs_significant = True
@@ -631,6 +727,8 @@ class Calculator(object):
 
         # Final  Results to CarsCavcsResult
 
+        #import pdb;
+        #pdb.set_trace()
         ccr = CarsCavcsResult(num_events,
                               cars_cum, cars_std_err, cars_t_testf, cars_significant,
                               cars_positive, cars_num_stocks_positive, cars_num_stocks_negative,
@@ -659,13 +757,16 @@ def regress_vals(x, y):
     import numpy as np
 
     A = np.vstack([x, np.ones(len(x))]).T
+    slope, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
 
+    """
     try:
         slope, intercept = np.linalg.lstsq(A, y, rcond=None)[0]
     except Exception as e:
+        import pdb;
+        pdb.set_trace()
         print(e)
-        exit(0)
-
+    """
 
     # print(slope, intercept)
     yhat = slope * x + intercept
@@ -735,7 +836,7 @@ class Plotter(object):
         ax2 = plt.subplot(212)
         plt.grid()
         plt.axhline(y=1.0, xmin=-look_back, xmax=look_forward, color='k')
-        plt.errorbar(li_time[look_back:], car[look_back:],
+        plt.errorbar(li_time[look_back:], cavcs[look_back:],
                      yerr=std_err2[look_back:], ecolor='#AAAAFF',
                      alpha=0.7)
         ax2.plot(li_time, cavcs, linewidth=1, label='mean', color='b')

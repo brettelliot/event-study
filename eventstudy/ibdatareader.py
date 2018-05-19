@@ -114,6 +114,7 @@ class IBDataReader(object):
             end_year += 1
 
         stocks = []
+        stocks_df = pd.DataFrame()
 
         for year in range(start_year, end_year + 1):
             stock_df = self.get_a_year_of_daily_bars_as_a_dataframe(symbol, year, use_rth)
@@ -123,7 +124,8 @@ class IBDataReader(object):
                 stocks.append(stock_df)
 
         # stocks_df = pd.concat(stocks, keys=[symbol])
-        stocks_df = pd.concat(stocks)
+        if len(stocks) > 0:
+            stocks_df = pd.concat(stocks)
         # stocks_df.tz_localize(tz='America/New_York')
         # stocks_df = stocks_df.sort_index()
         # print(stocks)
@@ -146,6 +148,8 @@ class IBDataReader(object):
 
         keys = ['Date'] + keys
         stocks = []
+        stocks_midf = pd.DataFrame()
+
         for symbol in symbols:
             stock_df = self.get_multiple_years_of_daily_bars_as_pandas_dataframe(
                 symbol, start_year, end_year, use_rth)
@@ -156,7 +160,8 @@ class IBDataReader(object):
                 stocks.append(stock_df)
             # print(stock_df)
 
-        stocks_midf = pd.concat(stocks, keys=symbols, axis=0, join='outer')  # .reset_index()
+        if len(stocks) > 0:
+            stocks_midf = pd.concat(stocks, keys=symbols, axis=0, join='outer')  # .reset_index()
 
         if stocks_midf.isnull().values.any():
             raise ValueError('get_stock_data: null values somewhere in dataframe')

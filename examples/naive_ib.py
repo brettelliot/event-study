@@ -33,7 +33,7 @@ def main():
     # Define the start and end date of the study
     start_date = datetime.datetime(2000, 1, 1)
     end_date = datetime.datetime(2017, 12, 31)
-    value_threshold = 10
+    value_threshold = 7
     look_back = 0
     look_forward = 10
     csv_file_name = '../data/events/event_dates.csv'
@@ -44,8 +44,7 @@ def main():
     data_cache = IBDataCache(data_path='../data/ib/')
     stock_data = data_cache.get_multiple_years_of_daily_bars_for_multiple_stocks_as_midf(
         symbols, keys, start_date.year, end_date.year, 0)
-        
-        
+
     #stock_data.loc[('RGR',slice(None))]
 
 
@@ -76,13 +75,15 @@ def main():
     calculator = Calculator()
 
     ccr = calculator.calculate_using_naive_benchmark(
-        event_matrix, stock_data['Close'], market_symbol, look_back, look_forward)
+        event_matrix, stock_data, market_symbol, look_back, look_forward)
 
     logger.info(ccr.results_as_string())
 
     plotter = Plotter()
 
-    plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events,look_back, look_forward, False, "naive_ib.pdf")
+    #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events,look_back, look_forward, False, "naive_ib.pdf")
+    plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
+                           look_back, look_forward, False, 'naive_ib.pdf')
 
 
 if __name__ == "__main__":

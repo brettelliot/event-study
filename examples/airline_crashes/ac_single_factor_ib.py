@@ -29,10 +29,10 @@ def main():
     symbols.append(market_symbol)
 
     # Define the start and end date of the study
-    start_date = datetime.datetime(1999, 1, 1)
+    start_date = datetime.datetime(2001, 1, 1)
     end_date = datetime.datetime(2018, 12, 31)
-    value_threshold = 0
-    estimation_window = 100
+    value_threshold = 1
+    estimation_window = 50
     buffer = 5
     pre_event_window = 0
     post_event_window = 10

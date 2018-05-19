@@ -22,8 +22,8 @@ def main():
     logger = logging.getLogger()
 
     # Define the symbols to study
-    symbols = ['LUV', 'DAL', 'AAL', 'ALK']
-    #symbols = ['LUV', 'ALK']
+    #symbols = ['LUV', 'DAL', 'AAL', 'ALK']
+    symbols = ['LUV', 'ALK']
 
     # Define the market symbol to compare against
     market_symbol = "SPY"
@@ -34,9 +34,9 @@ def main():
     # Define the start and end date of the study
     start_date = datetime.datetime(1999, 1, 1)
     end_date = datetime.datetime(2018, 12, 31)
-    value_threshold = 0
+    value_threshold = 1
     look_back = 0
-    look_forward = 10
+    look_forward = 15
     csv_file_name = '../../data/events/airline_crash_event_dates.csv'
 
     # Get a pandas multi-indexed dataframe indexed by date and symbol
@@ -60,13 +60,15 @@ def main():
     calculator = Calculator()
 
     ccr = calculator.calculate_using_naive_benchmark(
-        event_matrix, stock_data['Close'], market_symbol, look_back, look_forward)
+        event_matrix, stock_data, market_symbol, look_back, look_forward)
 
     logger.info(ccr.results_as_string())
 
     plotter = Plotter()
 
-    plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events,look_back, look_forward, False, "ac_naive_ib.pdf")
+    #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events,look_back, look_forward, False, "ac_naive_ib.pdf")
+    plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
+                           look_back, look_forward, False, 'ac_naive_ib.pdf')
 
 
 if __name__ == "__main__":
