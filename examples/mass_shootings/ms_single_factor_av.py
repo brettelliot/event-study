@@ -2,7 +2,7 @@ import datetime
 import logging
 from eventstudy.eventstudy import *
 from eventstudy.avdatacache import AVDataCache
-from examples.example_event_matrix import ExampleEventMatrix
+from examples.mass_shootings.ms_event_matrix import MSEventMatrix
 
 
 def main():
@@ -13,7 +13,7 @@ def main():
         #level=logging.DEBUG,
         format='%(message)s',
         handlers=[
-            logging.FileHandler('naive_av.log', mode='w'),
+            logging.FileHandler('ms_single_factor_av.log', mode='w'),
             logging.StreamHandler()
         ])
     logger = logging.getLogger()
@@ -31,36 +31,40 @@ def main():
     start_date = datetime.datetime(2000, 1, 1)
     end_date = datetime.datetime(2017, 12, 31)
     value_threshold = 7
-    look_back = 0
-    look_forward = 10
-    csv_file_name = '../data/events/event_dates.csv'
+    estimation_window = 200
+    buffer = 5
+    pre_event_window = 0
+    post_event_window = 10
+    csv_file_name = '../../data/events/mass_shooting_event_dates.csv'
 
     # Get a pandas multi-indexed dataframe indexed by date and symbol
     logger.debug("Collecting historical stock data")
     keys = ['adjusted_close', 'volume']
-    stock_data_cache = AVDataCache('../data/av/')
+    stock_data_cache = AVDataCache('../../data/av/')
     stock_data = stock_data_cache.get_stock_data(symbols, keys)
 
     logger.debug("Building event matrix")
-    eem = ExampleEventMatrix(stock_data.index.levels[1], symbols,
+    em = MSEventMatrix(stock_data.index.levels[1], symbols,
                              value_threshold, csv_file_name)
 
     # Get a dataframe with an index of all trading days, and columns of all symbols.
-    event_matrix = eem.build_event_matrix(start_date, end_date)
+    event_matrix = em.build_event_matrix(start_date, end_date)
     logger.debug(event_matrix[(event_matrix == 1.0).any(axis=1)])
-    logger.info("Number of events: " + str(len(event_matrix[(event_matrix == 1.0).any(axis=1)])))
+    logger.info("Number of events:" + str(len(event_matrix[(event_matrix == 1.0).any(axis=1)])))
 
     calculator = Calculator()
-    ccr = calculator.calculate_using_naive_benchmark(
-        event_matrix, stock_data, market_symbol, look_back, look_forward)
+    ccr = calculator.calculate_using_single_factor_benchmark(event_matrix, stock_data,
+                                                             market_symbol, estimation_window, buffer,
+                                                             pre_event_window, post_event_window)
 
     logger.info(ccr.results_as_string())
 
     plotter = Plotter()
-    #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events,look_back, look_forward, False, "naive_av.pdf")
-    plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
-                           look_back, look_forward, False, 'naive_av.pdf')
 
+    #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events, pre_event_window, post_event_window,
+    #                 False, "ms_single_factor_av.pdf")
+    plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
+                           pre_event_window, post_event_window, False, 'ms_single_factor_av.pdf')
 
 if __name__ == "__main__":
     main()

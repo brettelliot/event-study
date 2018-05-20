@@ -1,8 +1,8 @@
 import datetime
 import logging
 from eventstudy.eventstudy import *
-from eventstudy.avdatacache import AVDataCache
-from examples.example_event_matrix import ExampleEventMatrix
+from eventstudy.ibdatacache import IBDataCache
+from examples.mass_shootings.ms_event_matrix import MSEventMatrix
 
 
 def main():
@@ -13,7 +13,7 @@ def main():
         #level=logging.DEBUG,
         format='%(message)s',
         handlers=[
-            logging.FileHandler('single_factor_av.log', mode='w'),
+            logging.FileHandler('ms_single_factor_ib.log', mode='w'),
             logging.StreamHandler()
         ])
     logger = logging.getLogger()
@@ -35,20 +35,21 @@ def main():
     buffer = 5
     pre_event_window = 0
     post_event_window = 10
-    csv_file_name = '../data/events/event_dates.csv'
+    csv_file_name = '../../data/events/mass_shooting_event_dates.csv'
 
     # Get a pandas multi-indexed dataframe indexed by date and symbol
     logger.debug("Collecting historical stock data")
-    keys = ['adjusted_close', 'volume']
-    stock_data_cache = AVDataCache('../data/av/')
-    stock_data = stock_data_cache.get_stock_data(symbols, keys)
+    keys = ['Close', 'Volume']
+    data_cache = IBDataCache(data_path='../../data/ib/')
+    stock_data = data_cache.get_multiple_years_of_daily_bars_for_multiple_stocks_as_midf(
+        symbols, keys, start_date.year, end_date.year, 0)
 
     logger.debug("Building event matrix")
-    eem = ExampleEventMatrix(stock_data.index.levels[1], symbols,
+    em = MSEventMatrix(stock_data.index.levels[1], symbols,
                              value_threshold, csv_file_name)
 
     # Get a dataframe with an index of all trading days, and columns of all symbols.
-    event_matrix = eem.build_event_matrix(start_date, end_date)
+    event_matrix = em.build_event_matrix(start_date, end_date)
     logger.debug(event_matrix[(event_matrix == 1.0).any(axis=1)])
     logger.info("Number of events:" + str(len(event_matrix[(event_matrix == 1.0).any(axis=1)])))
 
@@ -62,9 +63,9 @@ def main():
     plotter = Plotter()
 
     #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events, pre_event_window, post_event_window,
-    #                 False, "single_factor_av.pdf")
+    #                 False, "ms_single_factor_ib.pdf")
     plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
-                           pre_event_window, post_event_window, False, 'single_factor_av.pdf')
+                           pre_event_window, post_event_window, False, 'ms_single_factor_ib.pdf')
 
 if __name__ == "__main__":
     main()

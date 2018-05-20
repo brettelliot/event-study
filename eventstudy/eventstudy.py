@@ -177,8 +177,9 @@ class Calculator(object):
         except KeyError as e:
             pass
 
-        # From QSTK
-        # Removing the starting and the end events
+        # The event matrix has a row for every data in the stock data.
+        # Zero (NaN) out any events in the rows at the beginning and end that would
+        # not have data.
         event_matrix.values[0:look_back, :] = np.NaN
         event_matrix.values[-look_forward:, :] = np.NaN
 
@@ -223,8 +224,12 @@ class Calculator(object):
                 #import pdb;
                 #pdb.set_trace()
 
+                if type(na_stock_rets) == type("") or type(na_stock_rets) == type(""):
+                    continue
+
                 if (np.mean(na_stock_rets) > 0):
                     results.loc[s_sym, 'pos'] = True
+                    #print(s_sym)
                 else:
                     results.loc[s_sym, 'neg'] = True
 
@@ -357,13 +362,28 @@ class Calculator(object):
         import matplotlib.pyplot as plt
         import datetime as dt
 
-        num_events = len(event_matrix[(event_matrix == 1.0).any(axis=1)])
+        # The event matrix has a row for every data in the stock data.
+        # Zero (NaN) out any events in the rows at the beginning and end that would
+        # not have data.
+        starting_event_num = len(event_matrix[(event_matrix == 1.0).any(axis=1)])
+        print("Starting number of events: {}".format(starting_event_num))
+        event_matrix.values[0:estimation_window + buffer + pre_event_window + post_event_window, :] = np.NaN
+        event_matrix.values[-estimation_window + buffer + pre_event_window + post_event_window:, :] = np.NaN
+
+        ending_event_num = len(event_matrix[(event_matrix == 1.0).any(axis=1)])
+        print("Ending number of events: {}".format(ending_event_num))
+        if(starting_event_num != ending_event_num):
+            print("{} events were dropped because they require data outside the data range.".format(starting_event_num -
+                                                                                                    ending_event_num))
 
         events = event_matrix[(event_matrix == 1.0).any(axis=1)]
+
+
 
         dates = stock_data.loc[market_symbol, slice(None)].index
         date1 = events.index[0]
         index1 = dates.tolist().index(date1)
+        wtf = dates[index1]
         date11 = dates[index1 - buffer]
         date12 = dates[index1 - (buffer + estimation_window)]
 
@@ -553,6 +573,7 @@ class Calculator(object):
 
                     event_cum_ex_vols = np.cumsum(event_ex_vols)
                     # plot_regressvals(mkt_vols,event_ex_vols,slope2, intercept2,event_cum_ex_vols,stock)
+
                     cvr.append(event_ex_vols.tolist())
 
                 # *********************

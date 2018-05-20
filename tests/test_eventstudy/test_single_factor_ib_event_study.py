@@ -2,14 +2,15 @@ import unittest
 import datetime as dt
 from eventstudy.eventstudy import *
 from eventstudy.ibdatareader import IBDataReader
-from tests.test_eventstudy.testcarseventstudy import TestCARSEventMatric
+from tests.test_eventstudy.testcarseventstudy import TestCARSEventMatrix
 
-class TestNaiveIBEventStudy(unittest.TestCase):
+class TestSingleFactorIBEventStudy(unittest.TestCase):
 
     def setUp(self):
 
         # Define the symbols to study
-        self.symbols = ['AES', 'AET', 'AFL', 'AVP', 'CLX', 'GM']
+        #self.symbols = ['AES', 'AET', 'AFL', 'AVP', 'CLX', 'GM']
+        self.symbols = ['AES']
 
         # Define the market symbol to compare against
         self.market_symbol = "SPY"
@@ -35,22 +36,21 @@ class TestNaiveIBEventStudy(unittest.TestCase):
 
         self.stock_data.drop_duplicates(inplace=True)
 
-
+    #@unittest.skip("skip")
     def test_posivite_cars(self):
-        daily_diff = 0.03
+        daily_diff = 0.01
         estimation_window = 200
         buffer = 5
         pre_event_window = 20
         post_event_window = 20
         positive = True
 
-        em = TestCARSEventMatric(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
+        em = TestCARSEventMatrix(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
                                  self.stock_data, daily_diff, positive)
 
         # Get a dataframe with an index of all trading days, and columns of all symbols.
         event_matrix = em.build_event_matrix(self.start_date, self.end_date)
         #print(event_matrix[(event_matrix == 1.0).any(axis=1)])
-        print("Number of events:" + str(len(event_matrix[(event_matrix == 1.0).any(axis=1)])))
 
         calculator = Calculator()
 
@@ -62,11 +62,10 @@ class TestNaiveIBEventStudy(unittest.TestCase):
         self.assertTrue(ccr.cars_significant)
         self.assertTrue(ccr.cars_positive)
 
-        plotter = Plotter()
+        #plotter = Plotter()
 
-        plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events, look_back, look_forward, True)
-        # plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
-        # look_back, look_forward, True)
+        #plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
+        #                       pre_event_window, post_event_window, True)
 
     def test_negative_cars(self):
         daily_diff = -0.03
@@ -76,13 +75,12 @@ class TestNaiveIBEventStudy(unittest.TestCase):
         post_event_window = 20
         positive = False
 
-        em = TestCARSEventMatric(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
+        em = TestCARSEventMatrix(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
                                  self.stock_data, daily_diff, positive)
 
         # Get a dataframe with an index of all trading days, and columns of all symbols.
         event_matrix = em.build_event_matrix(self.start_date, self.end_date)
         #print(event_matrix[(event_matrix == 1.0).any(axis=1)])
-        print("Number of events:" + str(len(event_matrix[(event_matrix == 1.0).any(axis=1)])))
 
         calculator = Calculator()
 
@@ -94,9 +92,10 @@ class TestNaiveIBEventStudy(unittest.TestCase):
         self.assertTrue(ccr.cars_significant)
         self.assertFalse(ccr.cars_positive)
 
-        plotter = Plotter()
+        #plotter = Plotter()
 
-        #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events, look_back, look_forward, True)
+        #plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
+        #                       pre_event_window, post_event_window, True)
 
 
 if __name__ == '__main__':

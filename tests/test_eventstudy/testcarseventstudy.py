@@ -1,7 +1,7 @@
 from eventstudy.eventstudy import *
 
 
-class TestCARSEventMatric(EventMatrix):
+class TestCARSEventMatrix(EventMatrix):
     def __init__(self, datetimes, symbols, market_symbol, stock_data, daily_diff, positive):
         EventMatrix.__init__(self, datetimes, symbols)
         self.market_symbol = market_symbol

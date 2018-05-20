@@ -2,7 +2,7 @@ import unittest
 import datetime as dt
 from eventstudy.eventstudy import *
 from eventstudy.ibdatareader import IBDataReader
-from tests.test_eventstudy.testcarseventstudy import TestCARSEventMatric
+from tests.test_eventstudy.testcarseventstudy import TestCARSEventMatrix
 
 class TestNaiveIBEventStudy(unittest.TestCase):
 
@@ -37,12 +37,14 @@ class TestNaiveIBEventStudy(unittest.TestCase):
 
     @unittest.skip("skipping because this doesn't pass. unsure if its a test or code problem.")
     def test_posivite_cars(self):
-        daily_diff = 0.03
+        # We could try to pick different stocks
+        # I think we need to get the t-test value up to 1.96
+        daily_diff = float(0.03)
         look_back = 20
         look_forward = 20
         positive = True
 
-        em = TestCARSEventMatric(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
+        em = TestCARSEventMatrix(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
                                  self.stock_data, daily_diff, positive)
 
         # Get a dataframe with an index of all trading days, and columns of all symbols.
@@ -59,12 +61,11 @@ class TestNaiveIBEventStudy(unittest.TestCase):
         self.assertTrue(ccr.cars_significant)
         self.assertTrue(ccr.cars_positive)
 
-        plotter = Plotter()
+        #plotter = Plotter()
 
-        plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events, look_back, look_forward, True)
+        #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events, look_back, look_forward, True)
         # plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
         # look_back, look_forward, True)
-
 
     def test_negative_cars(self):
         daily_diff = -0.03
@@ -72,7 +73,7 @@ class TestNaiveIBEventStudy(unittest.TestCase):
         look_forward = 20
         positive = False
 
-        em = TestCARSEventMatric(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
+        em = TestCARSEventMatrix(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
                                  self.stock_data, daily_diff, positive)
 
         # Get a dataframe with an index of all trading days, and columns of all symbols.
@@ -89,7 +90,7 @@ class TestNaiveIBEventStudy(unittest.TestCase):
         self.assertTrue(ccr.cars_significant)
         self.assertFalse(ccr.cars_positive)
 
-        plotter = Plotter()
+        #plotter = Plotter()
 
         #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events, look_back, look_forward, True)
 

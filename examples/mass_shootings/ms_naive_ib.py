@@ -2,7 +2,7 @@ import datetime
 import logging
 from eventstudy.eventstudy import *
 from eventstudy.ibdatacache import IBDataCache
-from examples.example_event_matrix import ExampleEventMatrix
+from examples.mass_shootings.ms_event_matrix import MSEventMatrix
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -16,7 +16,7 @@ def main():
         #level=logging.DEBUG,
         format='%(message)s',
         handlers=[
-            logging.FileHandler('naive_ib.log', mode='w'),
+            logging.FileHandler('ms_naive_ib.log', mode='w'),
             logging.StreamHandler()
         ])
     logger = logging.getLogger()
@@ -36,12 +36,12 @@ def main():
     value_threshold = 7
     look_back = 0
     look_forward = 10
-    csv_file_name = '../data/events/event_dates.csv'
+    csv_file_name = '../../data/events/mass_shooting_event_dates.csv'
 
     # Get a pandas multi-indexed dataframe indexed by date and symbol
     logger.debug("Collecting historical stock data")
     keys = ['Close', 'Volume']
-    data_cache = IBDataCache(data_path='../data/ib/')
+    data_cache = IBDataCache(data_path='../../data/ib/')
     stock_data = data_cache.get_multiple_years_of_daily_bars_for_multiple_stocks_as_midf(
         symbols, keys, start_date.year, end_date.year, 0)
 
@@ -64,11 +64,11 @@ def main():
 
 
     logger.debug("Building event matrix")
-    eem = ExampleEventMatrix(stock_data.index.levels[1], symbols,
+    em = MSEventMatrix(stock_data.index.levels[1], symbols,
                              value_threshold, csv_file_name)
 
     # Get a dataframe with an index of all trading days, and columns of all symbols.
-    event_matrix = eem.build_event_matrix(start_date, end_date)
+    event_matrix = em.build_event_matrix(start_date, end_date)
     logger.debug(event_matrix[(event_matrix == 1.0).any(axis=1)])
     logger.info("Number of events:" + str(len(event_matrix[(event_matrix == 1.0).any(axis=1)])))
 
@@ -81,9 +81,9 @@ def main():
 
     plotter = Plotter()
 
-    #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events,look_back, look_forward, False, "naive_ib.pdf")
+    #plotter.plot_car(ccr.cars, ccr.cars_std_err, ccr.num_events,look_back, look_forward, False, "ms_naive_ib.pdf")
     plotter.plot_car_cavcs(ccr.num_events, ccr.cars, ccr.cars_std_err, ccr.cavcs, ccr.cavcs_std_err,
-                           look_back, look_forward, False, 'naive_ib.pdf')
+                           look_back, look_forward, False, 'ms_naive_ib.pdf')
 
 
 if __name__ == "__main__":

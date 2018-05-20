@@ -1,7 +1,7 @@
 from eventstudy.eventstudy import *
 
 
-class ExampleEventMatrix(EventMatrix):
+class MSEventMatrix(EventMatrix):
     def __init__(self, datetimes, symbols, value_threshold, csv_file_name):
         EventMatrix.__init__(self, datetimes, symbols)
         self.value_threshold = value_threshold
