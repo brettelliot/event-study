@@ -86,6 +86,12 @@ class EventStudy(object):
         self.num_pre_event_window_periods = num_pre_event_window_periods
         self.num_post_event_window_periods = num_post_event_window_periods
 
+        # Create a DataFrame to hold all the Abnormal Returns which will be used
+        # to calculate the Average Abnormal Return (AAR)
+        columns = ['-6', '-5', '-4', '-3', '-2', '-1', '0', '1', '2', '3', '4', '5', '6']
+        all_abnormal_returns_df = pd.DataFrame(columns=columns)
+        #print('\nAll Abnormal Returns: \n{}'.format(all_abnormal_returns_df))
+
         for index, event in self.event_list_df.iterrows():
 
             """
@@ -105,8 +111,10 @@ class EventStudy(object):
                                                                       self.num_post_event_window_periods)
 
             if security_prices_df.isnull().values.any():
-                print('\n**** Prices for {} are missing  around date: {} ****'.format(event.ticker, event.day_0_date))
+                print('\n**** Prices for {} are missing around date: {} ****'.format(event.ticker, event.day_0_date))
                 continue
+
+            #print('\nSecurity prices($) for {} over the event window:\n{}'.format(event.ticker, security_prices_df.to_string(index=False)))
 
             # Get prices for the market benchmark over the event window
             market_prices_df = self.data_provider.get_closing_prices(market_ticker,
@@ -118,22 +126,30 @@ class EventStudy(object):
                 print('\n**** Prices for {} are missing around date: {} ****'.format(market_ticker, event.day_0_date))
                 continue
 
-            # print('\n{} Security prices($):\n{}'.format(event.ticker, security_prices_df.to_string(index=False)))
-            #print('\n{} Market prices($):\n{}'.format(market_ticker, market_prices_df.to_string(index=False)))
+            #print('\nMarket prices($) for {} over the event window:\n{}'.format(market_ticker, market_prices_df.to_string(index=False)))
 
             # Calculate the arithmetic return for the security over the event window
             security_returns_df = security_prices_df.pct_change(axis='columns')
-            #print('\nSecurity Returns(%) for {}:\n{}'.format(event.ticker,(security_returns_df*100).round(2).to_string(index=False)))
+            #print('\nSecurity Returns(%) for {} over the event window::\n{}'.format(event.ticker,(security_returns_df*100).round(2).to_string(index=False)))
 
             # Calculate the arithmetic return for the market over the event window.
             # In the naive model, this becomes the Normal Return.
             normal_returns_df = market_prices_df.pct_change(axis='columns')
-            #print('\nNormal Returns(%) for {}:\n{}'.format(market_ticker,(normal_returns_df*100).round(2).to_string(index=False)))
+            #print('\nNormal Returns(%) for {} over the event window:\n{}'.format(market_ticker,(normal_returns_df*100).round(2).to_string(index=False)))
 
             # Calculate the Abnormal Return over the event window
             # AR = Stock Return - Normal Return
             abnormal_returns_df = security_returns_df.sub(normal_returns_df)
-            print('\nAbnormal Returns(%) for {}:\n{}'.format(event.ticker,(abnormal_returns_df*100).round(2).to_string(index=False)))
+            #print('\nAbnormal Returns(%) for {} over the event window:\n{}'.format(event.ticker,(abnormal_returns_df*100).round(2).to_string(index=False)))
+
+            # Append the AR to the other ARs so we can calculate AAR later
+            all_abnormal_returns_df = pd.concat([all_abnormal_returns_df, abnormal_returns_df], ignore_index=True)
+
+
+        # Calculate the Average Abnormal Returns (AAR) by adding the AR to the AAR and then taking the mean
+        #print('\nAR - Abnormal Returns(%) for all securities over the event window:\n{}'.format((all_abnormal_returns_df*100).round(2)))
+        average_abnormal_returns_df = all_abnormal_returns_df.mean().to_frame()
+        print('\nAAR - Average Abnormal Returns(%) for all the securities over the event window:\n{}'.format((average_abnormal_returns_df*100).round(2).T.to_string(index=False)))
 
         return self.results
 
