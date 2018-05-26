@@ -153,8 +153,6 @@ class Calculator(object):
         abnormal_returns = daily_returns.copy()
         ex_vols = vlm_changes.copy()
 
-        #print(daily_returns.index.value_counts())
-        #print(ex_vols.index.value_counts())
 
         #import pdb;
         #pdb.set_trace()
@@ -177,12 +175,20 @@ class Calculator(object):
         except KeyError as e:
             pass
 
+        starting_event_num = len(event_matrix[(event_matrix == 1.0).any(axis=1)])
+        print("Starting number of events: {}".format(starting_event_num))
+
         # The event matrix has a row for every data in the stock data.
         # Zero (NaN) out any events in the rows at the beginning and end that would
         # not have data.
         event_matrix.values[0:look_back, :] = np.NaN
         event_matrix.values[-look_forward:, :] = np.NaN
 
+        ending_event_num = len(event_matrix[(event_matrix == 1.0).any(axis=1)])
+        print("Ending number of events: {}".format(ending_event_num))
+        if (starting_event_num != ending_event_num):
+            print("{} events were dropped because they require data outside the data range.".format(starting_event_num -
+                                                                                                    ending_event_num))
         # Number of events
         i_no_events = int(np.logical_not(np.isnan(event_matrix.values)).sum())
         assert i_no_events > 0, "Zero events in the event matrix"
@@ -368,7 +374,7 @@ class Calculator(object):
         starting_event_num = len(event_matrix[(event_matrix == 1.0).any(axis=1)])
         print("Starting number of events: {}".format(starting_event_num))
         event_matrix.values[0:estimation_window + buffer + pre_event_window + post_event_window, :] = np.NaN
-        event_matrix.values[-estimation_window + buffer + pre_event_window + post_event_window:, :] = np.NaN
+        event_matrix.values[-estimation_window - buffer - pre_event_window - post_event_window:, :] = np.NaN
 
         ending_event_num = len(event_matrix[(event_matrix == 1.0).any(axis=1)])
         print("Ending number of events: {}".format(ending_event_num))

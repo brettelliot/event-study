@@ -2,29 +2,31 @@ import unittest
 import datetime as dt
 from eventstudy.eventstudy import *
 from eventstudy.ibdatareader import IBDataReader
-from tests.test_eventstudy.testcarseventstudy import TestCARSEventMatrix
+from tests.test_eventstudy.earningseventmatrix import EarningsEventMatrix
 
 class TestSingleFactorIBEventStudy(unittest.TestCase):
 
     def setUp(self):
 
         # Define the symbols to study
-        #self.symbols = ['AES', 'AET', 'AFL', 'AVP', 'CLX', 'GM']
-        self.symbols = ['AES']
+        self.symbols =["MOS", "WOR", "UNF", "FC", "FDO", "CMC", "ZEP", "TISI", "AYI", "RPM", "MON", "GPN", "LNN", "IHS", "MG",
+               "TXI", "AZZ", "GBX", "SJR", "STZ", "RT", "MSM", "SVU", "SNX", "INFY", "WFC", "PPG", "SAR", "FRX", "BK",
+               "LEN", "GS", "FRC", "USB", "JPM", "MTB", "CMA", "WNS", "SCHW"]
 
         # Define the market symbol to compare against
         self.market_symbol = "SPY"
 
         # Add the market symbol to the symbols list to get it's data too
-        self.symbols.append(self.market_symbol)
+        #self.symbols.append(self.market_symbol)
+        self.symbols.insert(0, self.market_symbol)
 
         # Define the start and end date of the study
-        self.start_date = dt.datetime(2012, 1, 1)
-        self.end_date = dt.datetime(2015, 12, 31)
+        self.start_date = dt.datetime(2013, 1, 1)
+        self.end_date = dt.datetime(2013, 12, 31)
 
         # Get a pandas multi-indexed dataframe indexed by date and symbol
         keys = ['Close', 'Volume']
-        data_reader = IBDataReader(data_path='../test_data/ib')
+        data_reader = IBDataReader(data_path='../../data/ib')
         self.stock_data = data_reader.get_multiple_years_of_daily_bars_for_multiple_stocks_as_midf(
             self.symbols, keys, self.start_date.year, self.end_date.year, 1)
 
@@ -38,15 +40,15 @@ class TestSingleFactorIBEventStudy(unittest.TestCase):
 
     #@unittest.skip("skip")
     def test_posivite_cars(self):
-        daily_diff = 0.01
-        estimation_window = 200
+        pct_diff = 50.0
+        estimation_window = 10
         buffer = 5
         pre_event_window = 0
         post_event_window = 5
         positive = True
 
-        em = TestCARSEventMatrix(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
-                                 self.stock_data, daily_diff, positive)
+        em = EarningsEventMatrix(self.stock_data.index.levels[1], self.symbols, pct_diff,
+                                 positive, '../../data/events/nyse_earnings_surprises_2013.csv')
 
         # Get a dataframe with an index of all trading days, and columns of all symbols.
         event_matrix = em.build_event_matrix(self.start_date, self.end_date)
@@ -68,15 +70,15 @@ class TestSingleFactorIBEventStudy(unittest.TestCase):
         #                       pre_event_window, post_event_window, True)
 
     def test_negative_cars(self):
-        daily_diff = -0.03
-        estimation_window = 200
+        pct_diff = -50.0
+        estimation_window = 10
         buffer = 5
         pre_event_window = 0
         post_event_window = 5
         positive = False
 
-        em = TestCARSEventMatrix(self.stock_data.index.levels[1], self.symbols, self.market_symbol,
-                                 self.stock_data, daily_diff, positive)
+        em = EarningsEventMatrix(self.stock_data.index.levels[1], self.symbols, pct_diff,
+                                 positive, '../../data/events/nyse_earnings_surprises_2013.csv')
 
         # Get a dataframe with an index of all trading days, and columns of all symbols.
         event_matrix = em.build_event_matrix(self.start_date, self.end_date)
