@@ -122,13 +122,18 @@ class EventStudy(object):
             #print('\n{} Market prices($):\n{}'.format(market_ticker, market_prices_df.to_string(index=False)))
 
             # Calculate the arithmetic return for the security over the event window
-            security_returns_df = security_prices_df.pct_change(axis='columns').round(4)
-            #print('\nSecurity Returns(%) for {}:\n{}'.format(event.ticker, (security_returns_df*100).to_string(index=False)))
+            security_returns_df = security_prices_df.pct_change(axis='columns')
+            #print('\nSecurity Returns(%) for {}:\n{}'.format(event.ticker,(security_returns_df*100).round(2).to_string(index=False)))
 
             # Calculate the arithmetic return for the market over the event window.
             # In the naive model, this becomes the Normal Return.
-            normal_returns_df = market_prices_df.pct_change(axis='columns').round(4)
-            print('\nNormal Returns(%) for {}:\n{}'.format(market_ticker, (normal_returns_df*100).to_string(index=False)))
+            normal_returns_df = market_prices_df.pct_change(axis='columns')
+            #print('\nNormal Returns(%) for {}:\n{}'.format(market_ticker,(normal_returns_df*100).round(2).to_string(index=False)))
+
+            # Calculate the Abnormal Return over the event window
+            # AR = Stock Return - Normal Return
+            abnormal_returns_df = security_returns_df.sub(normal_returns_df)
+            print('\nAbnormal Returns(%) for {}:\n{}'.format(event.ticker,(abnormal_returns_df*100).round(2).to_string(index=False)))
 
         return self.results
 
