@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 class EventStudyDataProvider(object):
     """Class that provides security data specifically for and EventStudy"""
@@ -48,6 +50,7 @@ class EventStudyResults(object):
 
     def __init__(self):
         self.caar = []
+        self.number_events = 0
 
 
 class EventStudy(object):
@@ -147,9 +150,17 @@ class EventStudy(object):
 
 
         # Calculate the Average Abnormal Returns (AAR) by adding the AR to the AAR and then taking the mean
-        #print('\nAR - Abnormal Returns(%) for all securities over the event window:\n{}'.format((all_abnormal_returns_df*100).round(2)))
+        #print('\nAR(%) for all securities over the event window:\n{}'.format((all_abnormal_returns_df*100).round(2)))
         average_abnormal_returns_df = all_abnormal_returns_df.mean().to_frame()
-        print('\nAAR - Average Abnormal Returns(%) for all the securities over the event window:\n{}'.format((average_abnormal_returns_df*100).round(2).T.to_string(index=False)))
+        #print('\nAAR(%) for all the securities over the event window:\n{}'.format((average_abnormal_returns_df*100).round(2).T.to_string(index=False)))
+
+        cumulative_average_abnormal_returns = average_abnormal_returns_df.cumsum()
+        #print(cumulative_average_abnormal_returns)
+        #print('\nCAAR(%) for all the securities over the event window:\n{}'.format((cumulative_average_abnormal_returns * 100).round(2).T.to_string(index=False)))
+
+        self.results.caar = cumulative_average_abnormal_returns
+        self.results.number_events = all_abnormal_returns_df.shape[0]
+
 
         return self.results
 
@@ -167,7 +178,24 @@ def load_events(file_name):
     return event_list_df
 
 
+def plot_results(results, show=True, pdf_filename=None):
+    # Plot pos_CAR and neg_CAR
+    plt.clf()
+    plt.grid()
+    plt.plot(results.caar * 100, label="N=%s" % results.number_events)
+    plt.legend(loc='upper right')
+    plt.title("CAAR before and after event")
+    plt.ylabel('CAAR (%)')
+    plt.xlabel('Window')
+    plt.rcParams.update({'font.size': 8})
+    if pdf_filename is not None:
+        plt.savefig(pdf_filename, format='pdf')
+    if show:
+        plt.show()
+
+
 def main():
+
     """
     This example is from "Event Studies for Financial Research, chapter 4:
     A simplified example, the effect of air crashes on stock prices
@@ -186,7 +214,10 @@ def main():
     market_ticker = 'SPY'
     results = event_study.run_naive_model(market_ticker, num_pre_event_window_periods, num_post_event_window_periods)
 
-    print(results.caar)
+    print('\nCAAR (%) for all the securities over the event window:\n{}'.format(
+        (results.caar * 100).round(2).T.to_string(index=False)))
+
+    plot_results(results, False, "esfr_4.pdf")
 
 
 if __name__ == '__main__':
