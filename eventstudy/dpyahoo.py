@@ -37,7 +37,8 @@ class DataProviderYahoo(DataProvider):
         # print('day_0_date: {}, start_date: {}, end_date: {}'.format(day_0_date, start_date, end_date))
 
         # Get a pandas dataframe of closing prices
-        session = requests_cache.CachedSession(cache_name='cache', backend='sqlite')
+        expire_after = dt.timedelta(days=9999)
+        session = requests_cache.CachedSession(cache_name='cache', backend='sqlite', expire_after=expire_after)
         data_df = pdr.get_data_yahoo(ticker, start=start_date, end=end_date, session=session)
 
         # Return an empty dataframe if we don't get any data

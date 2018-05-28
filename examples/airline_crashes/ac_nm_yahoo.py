@@ -21,8 +21,8 @@ def read_events(file_name):
 def plot_results(results, show=True, pdf_filename=None):
     plt.clf()
     plt.figure(1)
-    ymin = -4.00
-    ymax = 2.00
+    ymin = min(np.nanmin(results.caar), np.nanmin(results.aar)) * 100 - .5
+    ymax = max(np.nanmax(results.caar), np.nanmax(results.aar)) * 100 + .5
 
     ax1 = plt.subplot(211)
     plt.grid()
