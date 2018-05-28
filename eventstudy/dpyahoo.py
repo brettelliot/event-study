@@ -34,17 +34,19 @@ class DataProviderYahoo(DataProvider):
 
         start_date = day_0_date - dt.timedelta(days=pre_window_delta)
         end_date = day_0_date + dt.timedelta(days=post_window_delta)
-        # print('day_0_date: {}, start_date: {}, end_date: {}'.format(day_0_date, start_date, end_date))
+        #print('ticker: {}, day_0_date: {}, start_date: {}, end_date: {}'.format(ticker, day_0_date, start_date, end_date))
 
         # Get a pandas dataframe of closing prices
         expire_after = dt.timedelta(days=9999)
         session = requests_cache.CachedSession(cache_name='cache', backend='sqlite', expire_after=expire_after)
         data_df = pdr.get_data_yahoo(ticker, start=start_date, end=end_date, session=session)
+        #print(data_df.head())
 
-        # Return an empty dataframe if we don't get any data
         if data_df.isnull().values.any():
+            # Return an empty dataframe if any of the data is NaN
             return closing_prices_df
         elif data_df.empty:
+            # Return an empty dataframe if we didn't get anything
             return closing_prices_df
 
         # Find the index of the event at day 0
@@ -54,6 +56,11 @@ class DataProviderYahoo(DataProvider):
         event_window_start = index-num_pre_event_window_periods
         event_window_end = index+num_post_event_window_periods+1
         prices = data_df.iloc[event_window_start:event_window_end]['Adj Close']
+
+        if len(columns) != len(prices):
+            #print('cols = {}, prices = {}'.format(len(columns), len(prices)))
+            # Return an empty dataframe if we didn't get enough data
+            return closing_prices_df
 
         # Set them in the dataframe we are returning
         closing_prices_df.loc[0] = prices.values

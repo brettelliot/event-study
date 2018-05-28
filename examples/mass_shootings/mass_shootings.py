@@ -1,23 +1,46 @@
 import pandas as pd
 from eventstudy.naivemodel import EventStudyNaiveModel
 from eventstudy.dpyahoo import DataProviderYahoo
+import datetime as dt
 
 
-def read_events(file_name):
+def read_events(file_name, start_date, end_date, value_threshold=7):
 
     """Read a csv and return a list of events as a pandas DataFrame."""
 
     event_list_df = pd.read_csv(file_name,
-                                usecols=['day_0_date', 'ticker'],
+                                usecols=['day_0_date', 'fatalities', 'ticker'],
                                 parse_dates=['day_0_date'],
                                 )
+
+    # Add index and sort by date
+    event_list_df = event_list_df.set_index('day_0_date')
+    event_list_df = event_list_df.sort_index()
+    #print(event_list_df)
+    #print(event_list_df.loc['2001':'2002'])
+
+    # Select between certain dates.
+    event_list_df = event_list_df.loc[start_date:end_date]
+
+    # Drop events that don't meet a certain threshold
+    event_list_df = event_list_df[event_list_df['fatalities'] >= value_threshold]
+    event_list_df = event_list_df.drop(['fatalities'], axis=1)
+
+    # Reset index so day_0_date is a column again
+    event_list_df = event_list_df.reset_index()
+    #print(event_list_df)
+    #print(event_list_df.loc['2017':'2018'])
 
     return event_list_df
 
 
 def main():
 
-    event_list_df = read_events('mass_shootings.csv')
+    start_date = dt.datetime(2016, 1, 1)
+    end_date = dt.datetime(2018, 12, 31)
+    value_threshold = 7
+
+    event_list_df = read_events('mass_shootings.csv', start_date, end_date, value_threshold)
     # print('The event list:\n {}'.format(event_list_df))
 
     data_provider = DataProviderYahoo()

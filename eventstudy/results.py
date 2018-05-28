@@ -15,7 +15,6 @@ class EventStudyResults(object):
     def plot(self, title=None, show=True, pdf_filename=None, ):
         plt.clf()
         plt.figure(1)
-        #plt.suptitle(title)
 
         # Find the b
         ymin = min(np.nanmin(self.caar), np.nanmin(self.aar)) * 100 - .5
@@ -29,7 +28,7 @@ class EventStudyResults(object):
         ax1.yaxis.set_major_formatter(mtick.PercentFormatter())
         plt.plot(self.caar * 100, label="N=%s" % self.num_events_processed)
         plt.legend(loc='upper right')
-                #plt.xlabel('Event Window')
+        #plt.xlabel('Event Window')
 
         ax2 = plt.subplot(212)
         plt.grid()
