@@ -16,13 +16,15 @@ class EventStudyResults(object):
         plt.clf()
         plt.figure(1)
 
-        # Find the b
-        ymin = min(np.nanmin(self.caar), np.nanmin(self.aar)) * 100 - .5
-        ymax = max(np.nanmax(self.caar), np.nanmax(self.aar)) * 100 + .5
+        # Use the same bounds for all charts
+        #ymin = min(np.nanmin(self.caar), np.nanmin(self.aar)) * 100 - .5
+        #ymax = max(np.nanmax(self.caar), np.nanmax(self.aar)) * 100 + .5
 
         ax1 = plt.subplot(211)
         plt.title(title)
         plt.grid()
+        ymin = np.nanmin(self.caar) * 100 - .5
+        ymax = np.nanmax(self.caar) * 100 + .5
         ax1.set_ylim([ymin, ymax])
         plt.ylabel('CAAR (%)')
         ax1.yaxis.set_major_formatter(mtick.PercentFormatter())
@@ -32,6 +34,8 @@ class EventStudyResults(object):
 
         ax2 = plt.subplot(212)
         plt.grid()
+        ymin = np.nanmin(self.aar) * 100 - .5
+        ymax = np.nanmax(self.aar) * 100 + .5
         ax2.set_ylim([ymin, ymax])
         plt.plot(self.aar * 100, label="N=%s" % self.num_events_processed)
         plt.legend(loc='upper right')
