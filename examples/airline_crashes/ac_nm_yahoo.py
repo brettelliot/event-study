@@ -74,7 +74,9 @@ def main():
 
     print('\nCAAR (%) for all the securities over the event window:\n{}'.format((results.caar * 100).round(2).to_frame().T.to_string(index=False)))
 
-    plot_results(results, False, "ac_nm_esfr.pdf")
+    plot_results(results, False, 'ac_nm_yahoo.pdf')
+
+    print('Started with {} events and processed {} events'.format(results.num_starting_events, results.num_events_processed))
 
 
 if __name__ == '__main__':

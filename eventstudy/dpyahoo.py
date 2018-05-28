@@ -38,10 +38,23 @@ class DataProviderYahoo(DataProvider):
 
         # Get a pandas dataframe of closing prices
         session = requests_cache.CachedSession(cache_name='cache', backend='sqlite')
-        data_df = pdr.get_data_yahoo("SPY", start="2017-01-01", end="2017-04-30", session=session)
+        data_df = pdr.get_data_yahoo(ticker, start=start_date, end=end_date, session=session)
 
+        # Return an empty dataframe if we don't get any data
         if data_df.isnull().values.any():
             return closing_prices_df
+        elif data_df.empty:
+            return closing_prices_df
 
-        print(data_df.head())
+        # Find the index of the event at day 0
+        index = data_df.index.searchsorted(day_0_date)
+
+        # Get the prices for the event window
+        event_window_start = index-num_pre_event_window_periods
+        event_window_end = index+num_post_event_window_periods+1
+        prices = data_df.iloc[event_window_start:event_window_end]['Adj Close']
+
+        # Set them in the dataframe we are returning
+        closing_prices_df.loc[0] = prices.values
+
         return closing_prices_df
