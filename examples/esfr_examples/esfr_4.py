@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from io import StringIO
 
 
-class EventStudyDataProvider(object):
+class EventStudyESFR(object):
     """Class that provides security data specifically for and EventStudy"""
 
     def __init__(self):
@@ -62,7 +62,7 @@ class EventStudy(object):
         """Create an event study.
 
         Args:
-            data_provider (:obj:`EventStudyDataProvider`): object that gets security data
+            data_provider (:obj:`EventStudyESFR`): object that gets security data
             event_list_df (:obj:`DataFrame`): Pandas DataFrame containing the list of event dates and ticker symbols
         """
 
@@ -214,7 +214,7 @@ def main():
     event_list_df = load_events()
     # print('The event list:\n {}'.format(event_list_df))
 
-    data_provider = EventStudyDataProvider()
+    data_provider = EventStudyESFR()
 
     event_study = EventStudy(data_provider, event_list_df)
 

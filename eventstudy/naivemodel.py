@@ -9,8 +9,10 @@ class EventStudyNaiveModel(object):
         """Create an event study.
 
         Args:
-            data_provider (:obj:`EventStudyDataProvider`): object that gets security data
-            event_list_df (:obj:`DataFrame`): Pandas DataFrame containing the list of event dates and ticker symbols
+            data_provider (:obj:`EventStudyESFR`): object that gets security data
+            event_list_df (:obj:`DataFrame`): Pandas DataFrame containing the list of event dates and ticker symbols.
+            The ticker symbol must be in a column 'ticker'.
+            For daily data, the date of day 0 must be column 'day_0_date' as a ISO8601 string (ie: YYYY-MM-DD)
         """
 
         self.data_provider = data_provider
@@ -40,7 +42,8 @@ class EventStudyNaiveModel(object):
 
         # Create a DataFrame to hold all the Abnormal Returns which will be used
         # to calculate the Average Abnormal Return (AAR)
-        columns = ['-6', '-5', '-4', '-3', '-2', '-1', '0', '1', '2', '3', '4', '5', '6']
+        columns = self.data_provider.get_event_window_columns(num_pre_event_window_periods,
+                                                              num_post_event_window_periods)
         all_abnormal_returns_df = pd.DataFrame(columns=columns)
         #print('\nAll Abnormal Returns: \n{}'.format(all_abnormal_returns_df))
 
@@ -99,8 +102,6 @@ class EventStudyNaiveModel(object):
 
             # Append the AR to the other ARs so we can calculate AAR later
             all_abnormal_returns_df = pd.concat([all_abnormal_returns_df, abnormal_returns_df], ignore_index=True)
-
-
 
         #print('\nAR(%) for all securities over the event window:\n{}'.format((all_abnormal_returns_df*100).round(2)))
         # Calculate the Average Abnormal Returns (AAR)

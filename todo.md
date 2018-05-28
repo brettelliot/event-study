@@ -2,6 +2,8 @@ Event Study
 -----------
 
 Todo list:
-* CAAR unit test
-* AAR graph
-* AAR unit test
+* update airline crash event data csv
+* build yahoo data provider
+* build ac_navie_yahoo
+* change prints to logs
+* write out report

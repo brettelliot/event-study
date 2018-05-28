@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from io import StringIO
 from eventstudy.naivemodel import EventStudyNaiveModel
+from eventstudy.dataprovider import DataProvider
 from pandas.util.testing import assert_frame_equal
 from pandas.util.testing import assert_series_equal
 
@@ -23,7 +24,7 @@ def load_events():
     return event_list_df
 
 
-class ESFRDataProvider(object):
+class DataProviderESFR(DataProvider):
     """Provide security price data specifically for this event study."""
 
     def __init__(self):
@@ -73,7 +74,7 @@ class TestEventStudyNaiveModel(unittest.TestCase):
         event_list_df = load_events()
 
         # AND security price data around the crash date for airlines involved
-        data_provider = ESFRDataProvider()
+        data_provider = DataProviderESFR()
 
         # AND an Event Study using the naive model
         event_study = EventStudyNaiveModel(data_provider, event_list_df)
