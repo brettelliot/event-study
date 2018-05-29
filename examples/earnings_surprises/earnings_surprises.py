@@ -53,11 +53,16 @@ def main():
     market_ticker = 'SPY'
     results = event_study.run_naive_model(market_ticker, num_pre_event_window_periods, num_post_event_window_periods)
 
-    print('\nCAAR (%) for all the securities over the event window:\n{}'.format((results.caar * 100).round(2).to_frame().T.to_string(index=False)))
+    print('\nStarted with {} events and processed {} events.'.format(results.num_starting_events,
+                                                                    results.num_events_processed))
+
+    print('\nAAR (%) for all the securities over the event window:\n{}'.format(
+        (results.aar * 100).round(2).to_frame().T.to_string(index=False)))
+
+    print('\nCAAR (%) for all the securities over the event window:\n{}'.format(
+        (results.caar * 100).round(2).to_frame().T.to_string(index=False)))
 
     results.plot("Negative earning surprises and their impact on stock returns", False, 'negative_earnings_surprises.pdf')
-
-    print('Started with {} events and processed {} events'.format(results.num_starting_events, results.num_events_processed))
 
 
 if __name__ == '__main__':

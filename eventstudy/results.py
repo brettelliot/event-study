@@ -2,8 +2,30 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mtick
 import numpy as np
 
+
 class EventStudyResults(object):
-    """Helper class that collects and formats Event Study Results."""
+
+    """Helper class that collects and formats the event study results.
+
+    Attributes:
+        num_starting_events (int): The number of events in the event list passed into the event study.
+        num_events_processed (int): The number of events that made it into the final calculations.
+        aar (pandas.Series): The average abnormal returns from the event study in a pandas.Series. The index of the
+            series goes from [event_window_start : event_window_end]. ie:
+                ['-6', '-5', '-4', '-3', '-2', '-1', '0', '1', '2', '3', '4', '5', '6']
+            The values of the Series are float64. The first value will be a nan  since these are returns
+            calculated from the previous value. ie:
+                [nan, -0.00029537, 0.00117336, 0.00569039, 0.00568463, -0.01591504, -0.0294841, -0.00043875,
+                0.0047285, 0.00226918, 0.01414965, 0.00387815, -0.00431594]
+        caar (pandas.Series): The cumulative average abnormal returns from the event study in a pandas.Series.
+            The index of the series goes from [event_window_start : event_window_end]. ie:
+                ['-6', '-5', '-4', '-3', '-2', '-1', '0', '1', '2', '3', '4', '5', '6']
+            The values of the Series are float64. The first value will be a nan  since these are returns
+            calculated from the previous value. ie:
+                [nan, -0.00029537, 0.00087799, 0.00656838, 0.01225301, -0.00366204, -0.03314613, -0.03358488,
+                -0.02885638, -0.0265872, -0.01243755, -0.0085594, -0.01287535]
+
+    """
 
     def __init__(self):
         self.num_starting_events = 0
@@ -12,36 +34,37 @@ class EventStudyResults(object):
         self.caar = None
         self.std_err = None
 
-    def plot(self, title=None, show=True, pdf_filename=None, ):
+    def plot(self, title=None, show=True, pdf_filename=None, show_errorbar=False):
         plt.clf()
         plt.figure(1)
-
-        # Use the same bounds for all charts
-        #ymin = min(np.nanmin(self.caar), np.nanmin(self.aar)) * 100 - .5
-        #ymax = max(np.nanmax(self.caar), np.nanmax(self.aar)) * 100 + .5
+        box_props = dict(facecolor='w', alpha=1.0)
 
         ax1 = plt.subplot(211)
         plt.title(title)
         plt.grid()
-        ymin = np.nanmin(self.caar) * 100 - .5
-        ymax = np.nanmax(self.caar) * 100 + .5
-        ax1.set_ylim([ymin, ymax])
         plt.ylabel('CAAR (%)')
-        ax1.yaxis.set_major_formatter(mtick.PercentFormatter())
-        plt.plot(self.caar * 100, label="N=%s" % self.num_events_processed)
+        ax1.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+        plt.plot(self.caar, label="N=%s" % self.num_events_processed)
+        caar_std_dev = self.caar.std()
+        if show_errorbar:
+            plt.errorbar(self.caar.index, self.caar, yerr=caar_std_dev,
+                         linestyle='None', elinewidth=1, ecolor='#1f77b4', capsize=2)
         plt.legend(loc='upper right')
-        #plt.xlabel('Event Window')
+        textstr = 'Day 0: {0:.2f}%\nStd: {1:.3f}'.format(self.caar.loc['0'] * 100, caar_std_dev)
+        ax1.text(0.02, 0.05, textstr, transform=ax1.transAxes, verticalalignment='bottom', bbox=box_props)
 
         ax2 = plt.subplot(212)
         plt.grid()
-        ymin = np.nanmin(self.aar) * 100 - .5
-        ymax = np.nanmax(self.aar) * 100 + .5
-        ax2.set_ylim([ymin, ymax])
-        plt.plot(self.aar * 100, label="N=%s" % self.num_events_processed)
+        plt.plot(self.aar, label="N=%s" % self.num_events_processed)
+        aar_std_dev = self.aar.std()
+        if show_errorbar:
+            plt.errorbar(self.aar.index, self.aar, yerr=aar_std_dev,
+                         linestyle='None', elinewidth=1, ecolor='#1f77b4', capsize=2)
         plt.legend(loc='upper right')
-        #plt.title("AAR before and after event")
+        textstr = 'Day 0: {0:.2f}%\nStd: {1:.3f}'.format(self.aar.loc['0'] * 100, aar_std_dev)
+        ax2.text(0.02, 0.05, textstr, transform=ax2.transAxes, verticalalignment='bottom', bbox=box_props)
         plt.ylabel('AAR (%)')
-        ax2.yaxis.set_major_formatter(mtick.PercentFormatter())
+        ax2.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
         plt.xlabel('Event Window')
 
         plt.tight_layout(pad=1.0, w_pad=1.0, h_pad=1.0)
