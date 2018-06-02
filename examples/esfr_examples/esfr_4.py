@@ -5,6 +5,28 @@ from eventstudy.naivemodel import EventStudyNaiveModel
 from eventstudy.dataprovider import DataProvider
 
 
+def build_events():
+
+    """Return a pandas dataframe of the events (since the csv files always get deleted.)"""
+    df = pd.DataFrame(columns=['event_date', 'day_0_date', 'ticker'])
+
+    event_string = """1/31/2000,2/1/2000,ALK
+11/12/2001,11/12/2001,AAMRQ
+4/1/2011,4/2/2011,LUV
+8/14/2013,8/14/2013,UPS"""
+
+    event_list = event_string.splitlines()
+
+    for row in event_list:
+        event = row.split(',')
+        df = df.append([{'event_date': event[0], 'day_0_date': event[1], 'ticker': event[2]}],
+                       ignore_index=True)
+
+    # convert date strings to datetimes
+    df['day_0_date'] = pd.to_datetime(df['day_0_date'])
+
+    return df
+
 class DataProviderESFR(DataProvider):
 
     """Provide security price data specifically for this event study."""
@@ -74,7 +96,7 @@ def main():
     using the eventstudy package.
     """
 
-    event_list_df = load_events()
+    event_list_df = build_events()
     # print('The event list:\n {}'.format(event_list_df))
 
     data_provider = DataProviderESFR()
