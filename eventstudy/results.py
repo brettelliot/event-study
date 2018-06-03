@@ -34,55 +34,22 @@ class EventStudyResults(object):
         self.caar = None
         self.std_err = None
 
-    def plot_simple(self, title=None, show_errorbar=False):
-        plt.clf()
-        plt.figure(1)
-        box_props = dict(facecolor='w', alpha=1.0)
-
-        ax1 = plt.subplot(211)
-        plt.title(title)
-        ax1.grid(color='k', linestyle='--', linewidth=.5)
-        plt.ylabel('CAAR (%)')
-        plt.plot(self.caar, label="N=%s" % self.num_events_processed)
-        vals = ax1.get_yticks()
-        ax1.set_yticklabels(['{:1.2f}%'.format(x * 100) for x in vals])
-        caar_std_dev = self.caar.std()
-        if show_errorbar:
-            plt.errorbar(self.caar.index, self.caar, yerr=caar_std_dev,
-                         linestyle='None', elinewidth=1, ecolor='#1f77b4', capsize=2)
-        plt.legend(loc='upper right')
-        textstr = 'Day 0: {0:.2f}%\nStd: {1:.3f}'.format(self.caar.loc['0'] * 100, caar_std_dev)
-        ax1.text(0.02, 0.05, textstr, transform=ax1.transAxes, verticalalignment='bottom', bbox=box_props)
-
-        ax2 = plt.subplot(212)
-        ax2.grid(color='k', linestyle='--', linewidth=.5)
-        plt.plot(self.aar, label="N=%s" % self.num_events_processed)
-        vals = ax2.get_yticks()
-        ax2.set_yticklabels(['{:1.2f}%'.format(x * 100) for x in vals])
-        aar_std_dev = self.aar.std()
-        if show_errorbar:
-            plt.errorbar(self.aar.index, self.aar, yerr=aar_std_dev,
-                         linestyle='None', elinewidth=1, ecolor='#1f77b4', capsize=2)
-        plt.legend(loc='upper right')
-        textstr = 'Day 0: {0:.2f}%\nStd: {1:.3f}'.format(self.aar.loc['0'] * 100, aar_std_dev)
-        ax2.text(0.02, 0.05, textstr, transform=ax2.transAxes, verticalalignment='bottom', bbox=box_props)
-        plt.ylabel('AAR (%)')
-        plt.xlabel('Event Window')
-
-        plt.tight_layout(pad=1.0, w_pad=1.0, h_pad=1.0)
-        plt.show()
-
     def plot(self, title=None, show=True, pdf_filename=None, show_errorbar=False):
         plt.clf()
-        plt.figure(1)
+        plt.figure(figsize=(15, 7.5))
         box_props = dict(facecolor='w', alpha=1.0)
 
         ax1 = plt.subplot(211)
         plt.title(title)
         plt.grid()
         plt.ylabel('CAAR (%)')
-        ax1.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
-        plt.plot(self.caar, label="N=%s" % self.num_events_processed)
+        ax1.yaxis.set_major_formatter(mtick.PercentFormatter(1.0, symbol=''))
+        ax1.axhline(linewidth=1, color='k')
+        x_ticks = [i for i in range(len(self.caar.index))]
+        x_labels = [str(i) for i in self.caar.index]
+        ax1.set_xticks(x_ticks)
+        ax1.set_xticklabels(x_labels)
+        plt.plot(self.caar.values, label="N=%s" % self.num_events_processed)
         caar_std_dev = self.caar.std()
         if show_errorbar:
             plt.errorbar(self.caar.index, self.caar, yerr=caar_std_dev,
@@ -93,7 +60,12 @@ class EventStudyResults(object):
 
         ax2 = plt.subplot(212)
         plt.grid()
-        plt.plot(self.aar, label="N=%s" % self.num_events_processed)
+        x_ticks = [i for i in range(len(self.aar.index))]
+        x_labels = [str(i) for i in self.aar.index]
+        ax2.set_xticks(x_ticks)
+        ax2.set_xticklabels(x_labels)
+        ax2.axhline(linewidth=1, color='k')
+        plt.plot(self.aar.values, label="N=%s" % self.num_events_processed)
         aar_std_dev = self.aar.std()
         if show_errorbar:
             plt.errorbar(self.aar.index, self.aar, yerr=aar_std_dev,
@@ -102,7 +74,7 @@ class EventStudyResults(object):
         textstr = 'Day 0: {0:.2f}%\nStd: {1:.3f}'.format(self.aar.loc['0'] * 100, aar_std_dev)
         ax2.text(0.02, 0.05, textstr, transform=ax2.transAxes, verticalalignment='bottom', bbox=box_props)
         plt.ylabel('AAR (%)')
-        ax2.yaxis.set_major_formatter(mtick.PercentFormatter(1.0))
+        ax2.yaxis.set_major_formatter(mtick.PercentFormatter(1.0, symbol=''))
         plt.xlabel('Event Window')
 
         plt.tight_layout(pad=1.0, w_pad=1.0, h_pad=1.0)
