@@ -117,6 +117,11 @@ def main():
     print('\nCAAR (%) for all the securities over the event window:\n{}'.format(
         (results.caar * 100).round(2).to_frame().T.to_string(index=False)))
 
+    #print('aar t-statistic: {}'.format(results.aar_test_statistic))
+    #print('aar p-val: {}'.format(results.aar_p_val))
+    #print('caar t-statistic: {}'.format(results.caar_test_statistic))
+    #print('caar p-val: {}'.format(results.caar_p_val))
+
     results.plot("Airline Crashes and their impact on stock returns", False, 'esfr_4.pdf')
 
 

@@ -33,6 +33,10 @@ class EventStudyResults(object):
         self.aar = None
         self.caar = None
         self.std_err = None
+        self.aar_test_statistic = None
+        self.caar_test_statistic = None
+        self.aar_p_val = None
+        self.caar_p_val = None
 
     def plot(self, title=None, show=True, pdf_filename=None, show_errorbar=False):
         plt.clf()

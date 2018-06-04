@@ -1,4 +1,6 @@
 import pandas as pd
+import numpy as np
+from scipy import stats
 from eventstudy.results import EventStudyResults
 
 
@@ -116,5 +118,16 @@ class EventStudyNaiveModel(object):
         self.results.caar = caar
         self.results.num_starting_events = self.event_list_df.shape[0]
         self.results.num_events_processed = all_abnormal_returns_df.shape[0]
+
+        # now calculate t-tests and p-vals
+        # Based on: https://www.quantopian.com/lectures/hypothesis-testing
+        n = all_abnormal_returns_df.shape[0]
+        self.results.aar_test_statistic = ((aar.mean() - 0) /
+                          (aar.std() / np.sqrt(n)))
+        self.results.aar_p_val = 2 * (1 - stats.t.cdf(self.results.aar_test_statistic, n - 1))
+
+        self.results.caar_test_statistic = ((caar.mean() - 0) /
+                          (caar.std() / np.sqrt(n)))
+        self.results.caar_p_val = 2 * (1 - stats.t.cdf(self.results.caar_test_statistic, n - 1))
 
         return self.results
