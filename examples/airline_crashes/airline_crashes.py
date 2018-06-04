@@ -36,15 +36,13 @@ def main():
     print('\nStarted with {} events and processed {} events.'.format(results.num_starting_events,
                                                                     results.num_events_processed))
 
-    print('\nAAR (%) for all the securities over the event window:\n{}'.format(
-        (results.aar * 100).round(2).to_frame().T.to_string(index=False)))
+    results.plot("Airline Crashes and their impact on stock returns", False, 'airline_crashes.pdf')
 
     print('\nCAAR (%) for all the securities over the event window:\n{}'.format(
         (results.caar * 100).round(2).to_frame().T.to_string(index=False)))
 
-    results.plot("Airline Crashes and their impact on stock returns", False, 'airline_crashes.pdf')
-
-
+    print('\nAAR (%) for all the securities over the event window:\n{}'.format(
+        (results.aar * 100).round(2).to_frame().T.to_string(index=False)))
 
 
 if __name__ == '__main__':
