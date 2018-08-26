@@ -6,7 +6,7 @@ Getting started
 Add this repo to your project:
 
 `pip install git+git://github.com/brettelliot/event-study@master`
-`pip install git+git://github.com/brettelliot/event-study.git#egg=event-study`
+
 
 Contributing
 -------------
