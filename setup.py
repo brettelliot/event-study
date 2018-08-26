@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='eventstudy',
-      version='0.0.1',
+      version='0.0.2',
       description='An event study tool',
       url='http://github.com/brettelliot/event-study',
       author='Brett Elliot',
