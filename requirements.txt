@@ -7,7 +7,7 @@ kiwisolver==1.0.1
 lxml==4.2.1
 matplotlib==2.2.2
 multitasking==0.0.7
-numpy==1.14.2
+numpy==1.22.0
 pandas==0.22.0
 pandas-datareader==0.6.0
 pyparsing==2.2.0
